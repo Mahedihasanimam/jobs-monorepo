@@ -97,8 +97,8 @@ class GenericGovScraper(BaseScraper):
             title=title_text,
             organization=self.organization,
             source=self.name,
-            source_url=self.listing_url, # Or detail page if we followed it
+            source_url=circular_url, # Now uses unique circular url
             circular_url=circular_url,
             published_date=published_date,
-            is_active=True # Generic scraper can't easily guess deadline unless parsed from detail
+            is_active=True
         )

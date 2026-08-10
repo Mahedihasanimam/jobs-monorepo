@@ -39,13 +39,12 @@ class SupabaseJobService:
             return 0, 0
             
         try:
-            # We use 'external_id' as the conflict target, falling back to on_conflict
             # The Supabase Python client upsert signature: 
-            # table.upsert(data, on_conflict="external_id")
+            # table.upsert(data, on_conflict="source,source_url")
             
             response = self.client.table("jobs").upsert(
                 data, 
-                on_conflict="external_id"
+                on_conflict="source,source_url"
             ).execute()
             
             # Since upsert returns the inserted/updated rows, we can't easily 

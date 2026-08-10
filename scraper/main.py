@@ -35,14 +35,34 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
     logger.info(f"Starting {scraper.name} scraper...")
     
     try:
-        jobs = await scraper.scrape()
-        fetched_count = len(jobs)
+        raw_jobs = await scraper.scrape()
+        fetched_count = len(raw_jobs)
         
         if fetched_count == 0:
             logger.warning(f"[{scraper.name}] No jobs fetched.")
             return 0, 0, 0
             
-        logger.info(f"[{scraper.name}] Fetched {fetched_count} jobs. Upserting to Supabase...")
+        # Deduplicate by (source, source_url)
+        unique_jobs = {}
+        for job in raw_jobs:
+            key = (job.source, job.source_url)
+            if key not in unique_jobs:
+                unique_jobs[key] = job
+                
+        jobs = list(unique_jobs.values())
+        deduped_count = len(jobs)
+        
+        logger.info(f"[{scraper.name}] Fetched {fetched_count} jobs. After deduplication: {deduped_count} jobs.")
+        
+        for job in jobs:
+            logger.info(f"--- Job Extracted ---")
+            logger.info(f"Title: {job.title}")
+            logger.info(f"Source URL: {job.source_url}")
+            logger.info(f"Circular URL: {job.circular_url}")
+            logger.info(f"Published Date: {job.published_date}")
+            logger.info(f"Fingerprint: {job.generate_fingerprint()}")
+            
+        logger.info(f"[{scraper.name}] Upserting {deduped_count} jobs to Supabase...")
         new_count, updated_count = supabase_service.upsert_jobs(jobs, dry_run=dry_run)
         
         return fetched_count, new_count, updated_count
