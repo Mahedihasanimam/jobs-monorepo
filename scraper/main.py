@@ -40,6 +40,9 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
         
         if fetched_count == 0:
             logger.warning(f"[{scraper.name}] No jobs fetched.")
+            if hasattr(scraper, "scrape_exam_notices"):
+                exam_notices = await scraper.scrape_exam_notices()
+                supabase_service.upsert_exam_notices(exam_notices, dry_run=dry_run)
             return 0, 0, 0
             
         # Deduplicate by (source, source_url)
@@ -64,6 +67,10 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
             
         logger.info(f"[{scraper.name}] Upserting {deduped_count} jobs to Supabase...")
         new_count, updated_count = supabase_service.upsert_jobs(jobs, dry_run=dry_run)
+        if hasattr(scraper, "scrape_exam_notices"):
+            exam_notices = await scraper.scrape_exam_notices()
+            exam_count = supabase_service.upsert_exam_notices(exam_notices, dry_run=dry_run)
+            logger.info(f"[{scraper.name}] Upserted {exam_count} exam/admit notices.")
         
         return fetched_count, new_count, updated_count
         
@@ -101,6 +108,7 @@ async def main():
     
     if not args.dry_run:
         supabase.mark_expired_jobs(dry_run=False)
+        supabase.mark_expired_exam_notices(dry_run=False)
 
 if __name__ == "__main__":
     asyncio.run(main())

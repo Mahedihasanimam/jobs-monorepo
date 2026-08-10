@@ -59,6 +59,8 @@ class TeletalkScraper(BaseScraper):
         # Organization
         org_el = card.select_one('.company-name, .org-name')
         organization = safe_extract(org_el) or "Teletalk Client"
+        logo_el = card.select_one('.company-logo img, .org-logo img, img[alt*="logo" i]')
+        organization_logo_url = normalize_url(self.base_url, logo_el.get('src')) if logo_el and logo_el.get('src') else None
         
         # Dates
         deadline_el = card.select_one('.deadline, .end-date')
@@ -74,6 +76,7 @@ class TeletalkScraper(BaseScraper):
         return Job(
             title=title,
             organization=organization,
+            organization_logo_url=organization_logo_url,
             source=self.name,
             source_url=source_url,
             apply_url=source_url,

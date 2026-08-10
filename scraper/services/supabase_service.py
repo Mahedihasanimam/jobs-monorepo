@@ -2,6 +2,7 @@ from supabase import create_client, Client
 import os
 from typing import List, Dict, Tuple
 from models.job import Job
+from models.exam_notice import ExamNotice
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -44,7 +45,7 @@ class SupabaseJobService:
             
             response = self.client.table("jobs").upsert(
                 data, 
-                on_conflict="source,source_url"
+                on_conflict="external_id"
             ).execute()
             
             # Since upsert returns the inserted/updated rows, we can't easily 
@@ -67,7 +68,6 @@ class SupabaseJobService:
         if dry_run:
             logger.info(f"[DRY RUN] Would mark expired jobs before {today}.")
             return 0
-            
         if not self.is_configured():
             return 0
             
@@ -84,4 +84,34 @@ class SupabaseJobService:
             return count
         except Exception as e:
             logger.error(f"Failed to mark expired jobs: {e}")
+            return 0
+
+    def upsert_exam_notices(self, notices: List[ExamNotice], dry_run: bool = False) -> int:
+        if not notices:
+            return 0
+        if dry_run:
+            return len(notices)
+        if not self.is_configured():
+            return 0
+        try:
+            response = self.client.table("exam_notices").upsert(
+                [notice.to_dict() for notice in notices], on_conflict="source,source_url"
+            ).execute()
+            return len(response.data) if response.data else 0
+        except Exception as error:
+            logger.error(f"Failed to upsert exam notices: {error}")
+            return 0
+
+    def mark_expired_exam_notices(self, dry_run: bool = False) -> int:
+        from datetime import date
+        today = date.today().isoformat()
+        if dry_run or not self.is_configured():
+            return 0
+        try:
+            response = self.client.table("exam_notices").update({"is_active": False})\
+                .lt("exam_date", today).in_("notice_type", ["exam_schedule", "admit_card"])\
+                .eq("is_active", True).execute()
+            return len(response.data) if response.data else 0
+        except Exception as error:
+            logger.error(f"Failed to mark expired exam notices: {error}")
             return 0

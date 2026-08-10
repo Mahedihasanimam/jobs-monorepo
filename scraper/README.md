@@ -30,7 +30,7 @@ pip install -r requirements.txt
 ### 2. Configure Supabase
 
 1. Go to [Supabase](https://supabase.com) and create a new project.
-2. In the Supabase Dashboard, go to **SQL Editor** and run the contents of the `setup.sql` file. This creates the `jobs` table with appropriate schemas and indexes.
+2. For a new database, run `setup.sql`. For an existing database, run only `migrations/20260810_release_schema.sql`. The release migration is idempotent and adds organization identity, categories, and exam/admit-card notices.
 3. Go to **Project Settings > API** to find your credentials.
 4. Copy the `.env.example` to `.env`:
    ```bash
@@ -98,3 +98,23 @@ Most Bangladesh Government websites use the National Web Portal template. You ca
 2. Register it in `main.py` inside `SCRAPER_REGISTRY`.
 
 If a site does not use the standard template, inherit from `BaseScraper` and implement the `scrape()` and `parse_job()` methods directly (see `TeletalkScraper` for an example).
+# Eligibility and previous-question resources
+
+Jobs now derive `eligibility_summary`, `eligible_applicants`, and `qualification_tags`. Diploma-compatible circulars are tagged with `diploma` from the title, education, or description and can be filtered directly by the app.
+
+Previous questions are stored as source-linked metadata; files are not copied. Configure comma-separated, permission-appropriate archive pages:
+
+```env
+QUESTION_ARCHIVE_URLS=https://official.example.gov.bd/questions,https://trusted-publisher.example/questions
+```
+
+The discovery scraper only follows question-labelled links on these configured pages and matches them to scraped job organization/title tokens. Government domains are marked official; other resources are visibly labelled as third-party in the app. Run `migrations/20260810_add_eligibility_and_questions.sql` before enabling this feature.
+
+For job-specific web discovery when archive pages are incomplete, optionally configure Brave Search API. Search is capped per scraper run to control cost and rate limits:
+
+```env
+BRAVE_SEARCH_API_KEY=your_api_key
+QUESTION_SEARCH_MAX_JOBS=25
+```
+
+Results are accepted only when their title/description/URL explicitly identifies a previous question or question paper. The app links to the publisher; it does not copy the file.

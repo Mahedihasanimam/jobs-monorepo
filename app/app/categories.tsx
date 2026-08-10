@@ -1,0 +1,14 @@
+import { useRouter } from 'expo-router';
+import { BriefcaseBusiness, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { colors } from '@/constants/colors';
+import { useJobFacets } from '@/hooks/useJobs';
+
+export default function CategoriesScreen() {
+  const router = useRouter(); const query = useJobFacets();
+  const open = (category: string) => router.push({ pathname: '/jobs', params: { category } });
+  return <SafeAreaView style={styles.safe}><View style={styles.header}><Pressable accessibilityLabel="পেছনে যান" style={styles.back} onPress={router.back}><ChevronLeft size={25} color={colors.text} /></Pressable><View><Text style={styles.title}>চাকরির বিভাগসমূহ</Text><Text style={styles.subtitle}>বিভাগ বেছে সংশ্লিষ্ট চলমান চাকরি দেখুন</Text></View></View><ScrollView contentContainerStyle={styles.content}>{query.isLoading ? <Text style={styles.loading}>বিভাগ লোড হচ্ছে…</Text> : query.isError ? <EmptyState title="বিভাগ লোড করা যাচ্ছে না" actionLabel="আবার চেষ্টা করুন" onAction={() => void query.refetch()} /> : query.data?.categories.length ? query.data.categories.map((category) => <Pressable key={category} style={styles.card} onPress={() => open(category)}><View style={styles.icon}><BriefcaseBusiness size={22} color={colors.primary} /></View><View style={styles.copy}><Text style={styles.cardTitle}>{category}</Text><Text style={styles.cardText}>এই বিভাগের চাকরিগুলো দেখুন</Text></View><ChevronRight size={20} color={colors.textSecondary} /></Pressable>) : <EmptyState title="কোনো বিভাগ পাওয়া যায়নি" message="স্ক্র্যাপার থেকে category তথ্য যোগ হলে এখানে দেখা যাবে।" />}</ScrollView></SafeAreaView>;
+}
+const styles = StyleSheet.create({ safe: { flex: 1, backgroundColor: '#fff' }, header: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border }, back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, title: { color: colors.primaryDeep, fontSize: 20, fontWeight: '900' }, subtitle: { color: colors.textSecondary, fontSize: 10, marginTop: 2 }, content: { padding: 16, gap: 10 }, loading: { color: colors.textSecondary, textAlign: 'center', marginTop: 40 }, card: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 13, borderRadius: 12, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card }, icon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight }, copy: { flex: 1 }, cardTitle: { color: colors.text, fontSize: 14, fontWeight: '800' }, cardText: { color: colors.textSecondary, fontSize: 10, marginTop: 4 } });

@@ -4,6 +4,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 import os
 import asyncio
 from typing import List, Optional, Any
+from urllib.parse import urljoin
 from models.job import Job
 from utils.logger import get_logger
 
@@ -59,6 +60,30 @@ class BaseScraper:
         html = await self.fetch(url)
         if html:
             return BeautifulSoup(html, "html.parser")
+        return None
+
+    async def fetch_bytes(self, url: str) -> Optional[bytes]:
+        """Fetch binary source documents such as circular PDFs."""
+        async with httpx.AsyncClient(timeout=self.timeout, headers=self.headers) as client:
+            response = await client.get(url, follow_redirects=True)
+            response.raise_for_status()
+            return response.content
+
+    def extract_organization_logo(self, soup: BeautifulSoup, base_url: Optional[str] = None) -> Optional[str]:
+        """Extract an organization logo from common official-site markup."""
+        generic_marks = ('bangladesh-government-logo', 'bangladesh-govt-logo', 'govt-logo', 'government-logo', 'national-portal', 'emblem')
+        selectors = (
+            'header img.logo', '.site-logo img', '.navbar-brand img',
+            'img.logo', 'img[alt*="logo" i]', 'img[src*="logo" i]'
+        )
+        for selector in selectors:
+            for image in soup.select(selector):
+                source = image.get('src')
+                if source and not str(source).startswith('data:'):
+                    absolute = urljoin(base_url or self.base_url, str(source))
+                    searchable = f"{absolute} {image.get('alt', '')}".lower()
+                    if not any(mark in searchable for mark in generic_marks):
+                        return absolute
         return None
 
     async def scrape(self) -> List[Job]:

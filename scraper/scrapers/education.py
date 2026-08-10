@@ -6,5 +6,6 @@ class EducationScraper(GenericGovScraper):
             "name": "SHED",
             "base_url": "https://shed.gov.bd",
             "listing_url": "https://shed.gov.bd/site/view/notices",
-            "organization": "Secondary and Higher Education Division"
+            "organization": "Secondary and Higher Education Division",
+            "category": "শিক্ষা"
         })

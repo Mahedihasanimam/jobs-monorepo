@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
-from typing import Optional
+from typing import List, Optional
 import hashlib
 import json
 
@@ -10,6 +10,8 @@ class Job:
     organization: str
     source: str
     source_url: str
+    organization_logo_url: Optional[str] = None
+    is_government_source: bool = False
     
     category: Optional[str] = None
     published_date: Optional[date] = None
@@ -21,6 +23,9 @@ class Job:
     education: Optional[str] = None
     experience: Optional[str] = None
     age_requirement: Optional[str] = None
+    eligibility_summary: Optional[str] = None
+    eligible_applicants: Optional[str] = None
+    qualification_tags: List[str] = field(default_factory=list)
     
     location: Optional[str] = None
     salary: Optional[str] = None
@@ -31,6 +36,31 @@ class Job:
     
     is_active: bool = True
     external_id: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Mark records from known official Bangladesh government hosts."""
+        from urllib.parse import urlparse
+        host = (urlparse(self.source_url).hostname or "").lower()
+        self.is_government_source = self.is_government_source or host == "gov.bd" or host.endswith(".gov.bd") or host == "teletalk.com.bd" or host.endswith(".teletalk.com.bd")
+
+        qualification_text = " ".join(filter(None, (
+            self.title, self.education, self.description
+        ))).lower()
+        diploma_terms = ("diploma", "ডিপ্লোমা", "ডিপ্লোমাধারী", "ডিপ্লোমা-ইন")
+        if any(term in qualification_text for term in diploma_terms) and "diploma" not in self.qualification_tags:
+            self.qualification_tags.append("diploma")
+
+        if not self.eligibility_summary:
+            requirements = [value.strip() for value in (
+                self.education, self.experience, self.age_requirement
+            ) if value and value.strip()]
+            self.eligibility_summary = "\n".join(requirements) or None
+
+        if not self.eligible_applicants and self.eligibility_summary:
+            self.eligible_applicants = (
+                "অফিসিয়াল বিজ্ঞপ্তিতে উল্লেখিত শিক্ষা, অভিজ্ঞতা ও বয়সের শর্ত "
+                "পূরণকারী প্রার্থীরা আবেদন করতে পারবেন।"
+            )
     
     def generate_fingerprint(self) -> str:
         """

@@ -6,5 +6,6 @@ class RailwayScraper(GenericGovScraper):
             "name": "Bangladesh Railway",
             "base_url": "https://railway.gov.bd",
             "listing_url": "https://railway.gov.bd/site/view/notices",
-            "organization": "Bangladesh Railway"
+            "organization": "Bangladesh Railway",
+            "category": "রেলওয়ে"
         })

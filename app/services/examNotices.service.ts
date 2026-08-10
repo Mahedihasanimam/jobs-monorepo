@@ -1,0 +1,2 @@
+import { assertSupabaseConfigured, supabase } from '@/lib/supabase';
+export async function getExamNotices() { assertSupabaseConfigured(); const { data, error } = await supabase.from('exam_notices').select('*').eq('is_active', true).order('exam_date', { ascending: true, nullsFirst: false }).order('published_date', { ascending: false, nullsFirst: false }).limit(100); if (error) throw error; return data ?? []; }

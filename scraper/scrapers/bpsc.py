@@ -11,5 +11,6 @@ class BPSCScraper(GenericGovScraper):
             "base_url": "https://bpsc.gov.bd",
             "listing_url": "https://bpsc.gov.bd/site/view/notices",
             "organization": "Bangladesh Public Service Commission",
+            "category": "জনপ্রশাসন",
             # We can use the default selectors from GenericGovScraper
         })
