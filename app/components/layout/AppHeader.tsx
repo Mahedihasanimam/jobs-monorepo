@@ -20,14 +20,14 @@ export function AppHeader({ title, subtitle, topText, logo, action }: { title: s
     {action ?? (logo ? <Pressable accessibilityLabel="মেনু খুলুন" style={styles.headerMenu} onPress={() => setOpen(true)}><Menu size={23} color={colors.text} /></Pressable> : null)}
   </View><AppDrawer visible={open} onClose={() => setOpen(false)} /></>;
 }
-const styles = StyleSheet.create({ 
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, 
-  menu: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight }, 
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  menu: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight },
   headerMenu: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   logo: { width: 47, height: 47, borderRadius: 24 },
-  text: { flex: 1, justifyContent: 'center' }, 
+  text: { flex: 1, justifyContent: 'center' },
   topText: { color: '#34684F', fontSize: 9.3, lineHeight: 13, fontWeight: '500' },
-  title: { color: colors.text, fontSize: 23, lineHeight: 31, fontWeight: '900' }, 
+  title: { color: colors.text, fontSize: 23, lineHeight: 31, fontWeight: '900' },
   titleLarge: { color: colors.primaryDeep, fontSize: 21, lineHeight: 26, fontWeight: '800' },
-  subtitle: { color: '#59655F', fontSize: 9.3, lineHeight: 12, fontWeight: '500' } 
+  subtitle: { color: '#59655F', fontSize: 9.3, lineHeight: 12, fontWeight: '500' }
 });

@@ -67,8 +67,8 @@ function OverviewCard({ icon: Icon, title, hint, value, urgent, loading, onPress
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAFCFB' },
-  header: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, backgroundColor: '#FAFCFB' },
+  safe: { flex: 1, backgroundColor: colors.background },
+  header: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, backgroundColor: colors.background },
   back: { alignItems: 'center', justifyContent: 'center', marginLeft: -8 },
   title: { color: '#0B1A14', fontSize: 22, fontWeight: '800' },
   subtitle: { color: '#6B7280', fontSize: 13, marginTop: 2, fontWeight: '500' },

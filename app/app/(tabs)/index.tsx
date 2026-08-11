@@ -40,6 +40,7 @@ import { useJobFiltersStore } from '@/store/jobFilters.store';
 import { toBanglaDigits } from '@/utils/date';
 import { useJobProfile } from '@/hooks/useJobProfile';
 import { matchJob } from '@/utils/jobMatch';
+import { colors } from '@/constants/colors';
 
 const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
 
@@ -53,7 +54,7 @@ const COLORS = {
   text3: '#7E8984',
   border: '#E5EAE7',
   borderSoft: '#EDF1EF',
-  background: '#FFFFFF',
+  background: colors.background,
   surface: '#FFFFFF',
   softSurface: '#F8FAF9',
   orange: '#FF9B38',
@@ -98,7 +99,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       <View style={styles.screen}>
         <ScrollView
@@ -446,7 +447,7 @@ const styles = StyleSheet.create({
 
   /* Header */
   header: {
-    minHeight: 72,
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

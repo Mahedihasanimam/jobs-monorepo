@@ -141,7 +141,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F8F6' }, flex: { flex: 1 },
+  safe: { flex: 1, backgroundColor: colors.background }, flex: { flex: 1 },
   head: { minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 16, backgroundColor: '#fff' },
   headCopy: { flex: 1 }, mark: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
   eyebrow: { color: colors.primary, fontSize: 9, fontWeight: '900', letterSpacing: .8 }, title: { color: colors.text, fontSize: 18, fontWeight: '900', marginTop: 2 },

@@ -3,7 +3,7 @@ export const colors = {
   primaryDeep: '#004B37',
   primaryLight: '#E8F4EF',
   red: '#F42A41',
-  background: '#F3F8F6',
+  background: '#FFFFFF',
   card: '#FFFFFF',
   text: '#17201D',
   textSecondary: '#68746F',

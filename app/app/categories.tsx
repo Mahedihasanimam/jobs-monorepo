@@ -75,14 +75,14 @@ export default function CategoriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAFCFB' },
+  safe: { flex: 1, backgroundColor: colors.background },
   header: {
     minHeight: 80,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: '#FAFCFB'
+    backgroundColor: colors.background
   },
   headerLeft: {
     flexDirection: 'row',
