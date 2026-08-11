@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 import hashlib
 import json
 
@@ -29,7 +29,18 @@ class Job:
     
     location: Optional[str] = None
     salary: Optional[str] = None
+    subject: Optional[str] = None
+    gender_requirement: Optional[str] = None
+    quota_requirement: Optional[str] = None
+    application_fee: Optional[str] = None
+    freshers_allowed: Optional[bool] = None
     description: Optional[str] = None
+    circular_text: Optional[str] = None
+    circular_document_hash: Optional[str] = None
+    circular_extraction_method: Optional[str] = None
+    circular_processing_status: Optional[str] = None
+    requirement_confidence: Dict[str, float] = field(default_factory=dict)
+    requirement_sources: Dict[str, Any] = field(default_factory=dict)
     
     apply_url: Optional[str] = None
     circular_url: Optional[str] = None

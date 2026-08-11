@@ -27,6 +27,16 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+Circular PDFs are processed automatically. Embedded PDF text is preferred; scanned pages use local Tesseract OCR. Install the Bengali language data on the scraper host:
+
+```bash
+brew install tesseract-lang      # macOS
+# Debian/Ubuntu: apt install tesseract-ocr-ben
+tesseract --list-langs           # must include ben and eng
+```
+
+Apply `migrations/20260811_add_circular_extraction.sql` before the first enriched upsert. Use `--skip-pdf` to temporarily disable PDF work, and `PDF_PROCESSING_CONCURRENCY=2` to control CPU/network usage. Extracted values include confidence and page/excerpt provenance; the original circular remains the final authority.
+
 ### 2. Configure Supabase
 
 1. Go to [Supabase](https://supabase.com) and create a new project.

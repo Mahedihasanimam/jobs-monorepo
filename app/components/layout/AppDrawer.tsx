@@ -14,7 +14,7 @@ export function AppDrawer({ visible, onClose }: { visible: boolean; onClose: () 
         <Text style={styles.label}>প্রধান মেনু</Text>
         <Item icon={Home} label="হোম" onPress={() => go('/(tabs)')} />
         <Item icon={BriefcaseBusiness} label="সকল চাকরি" onPress={() => go('/jobs')} />
-        <Item icon={CalendarClock} label="পরীক্ষা ও প্রবেশপত্র আপডেট" onPress={() => go('/exams')} />
+        <Item icon={CalendarClock} label="পরীক্ষা ও প্রবেশপত্রের হালনাগাদ" onPress={() => go('/exams')} />
         <Item icon={Bookmark} label="সংরক্ষিত চাকরি" onPress={() => go('/saved')} />
         <View style={styles.divider} /><Item icon={Info} label="অ্যাপ সম্পর্কে" onPress={onClose} />
         <Text style={styles.note}>তথ্য সংশ্লিষ্ট সরকারি প্রতিষ্ঠানের প্রকাশিত বিজ্ঞপ্তি থেকে সংগ্রহ করা হয়।</Text>

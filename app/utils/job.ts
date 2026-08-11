@@ -11,6 +11,6 @@ export function getJobShareMessage(job: Job) {
     'অফিসিয়াল বিজ্ঞপ্তি:',
     link,
     '',
-    'Govt Jobs BD থেকে শেয়ার করা হয়েছে',
+    'সরকারি চাকরি থেকে শেয়ার করা হয়েছে',
   ].filter((line) => line !== null).join('\n');
 }

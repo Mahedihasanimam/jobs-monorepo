@@ -10,6 +10,7 @@ from utils.text import safe_extract
 import re
 from datetime import date
 from io import BytesIO
+from utils.job_notice import is_recruitment_notice
 
 logger = get_logger(__name__)
 
@@ -45,8 +46,7 @@ class GenericGovScraper(BaseScraper):
 
     def _is_job_notice(self, title: str) -> bool:
         """Heuristic to check if a notice is a job circular."""
-        title_lower = title.lower()
-        return any(keyword in title_lower for keyword in self.job_keywords)
+        return is_recruitment_notice(title)
 
     async def scrape(self) -> List[Job]:
         jobs = []
@@ -144,18 +144,13 @@ class GenericGovScraper(BaseScraper):
                 detail_text = detail_soup.get_text(' ', strip=True)
                 published_date = published_date or self._date_after_label(detail_text, ('প্রকাশের তারিখ', 'প্রকাশিত', 'published'))
                 deadline = self._date_after_label(detail_text, ('আবেদনের শেষ তারিখ', 'আবেদনের শেষ সময়', 'শেষ তারিখ', 'deadline', 'closing date'))
-                pdf_link = detail_soup.select_one('a[href$=".pdf" i], a[href*=".pdf?" i]')
+                pdf_link = detail_soup.select_one('.notice-details a[href$=".pdf" i], .notice-content a[href$=".pdf" i], article a[href$=".pdf" i], main a[href$=".pdf" i], a[download][href*=".pdf" i]')
+                if not pdf_link:
+                    all_pdf_links = detail_soup.select('a[href$=".pdf" i], a[href*=".pdf?" i]')
+                    if len(all_pdf_links) == 1:
+                        pdf_link = all_pdf_links[0]
                 if pdf_link and pdf_link.get('href'):
                     circular_url = normalize_url(self.base_url, pdf_link.get('href')) or circular_url
-        if re.search(r'\.pdf(?:$|\?)', circular_url, flags=re.IGNORECASE):
-            pdf_text = await self._text_from_pdf(circular_url)
-            if pdf_text:
-                deadline = deadline or self._date_after_label(pdf_text, ('আবেদনের শেষ তারিখ', 'আবেদনের শেষ সময়', 'শেষ তারিখ', 'deadline', 'closing date', 'last date'))
-                education = self._section_after_labels(pdf_text, ('শিক্ষাগত যোগ্যতা', 'শিক্ষাগত যোগ্যতাঃ', 'educational qualification', 'qualification'))
-                experience = self._section_after_labels(pdf_text, ('অভিজ্ঞতা', 'experience'))
-                age_requirement = self._section_after_labels(pdf_text, ('বয়সসীমা', 'বয়সসীমা', 'বয়স', 'age limit'))
-                salary = self._section_after_labels(pdf_text, ('বেতন স্কেল', 'বেতন', 'salary', 'pay scale'))
-            
         return Job(
             title=title_text,
             organization=self.organization,

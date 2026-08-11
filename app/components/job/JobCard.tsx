@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { Bookmark, CalendarDays, CheckCircle2, Clock, ArrowRight } from 'lucide-react-native';
+import { Bookmark, CalendarDays, CheckCircle2, Clock, ArrowRight, Sparkles } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/constants/colors';
@@ -8,6 +8,8 @@ import { useSavedJobsStore } from '@/store/savedJobs.store';
 import type { Job } from '@/types/job';
 import { formatJobDate } from '@/utils/date';
 import { OrganizationLogo } from './OrganizationLogo';
+import { useJobProfile } from '@/hooks/useJobProfile';
+import { matchJob } from '@/utils/jobMatch';
 
 export type JobCardVariant = 'default' | 'compact' | 'featured' | 'closingSoon';
 
@@ -18,6 +20,8 @@ function JobCardComponent({ job, variant = 'default' }: { job: Job; variant?: Jo
   const open = useCallback(() => router.push({ pathname: '/job/[id]', params: { id: String(job.id) } }), [job.id, router]);
   const published = formatJobDate(job.published_date);
   const deadline = formatJobDate(job.deadline);
+  const { profile } = useJobProfile();
+  const match = matchJob(job, profile);
 
   return (
     <Pressable onPress={open} accessibilityRole="button" accessibilityLabel={`${job.title}, ${job.organization}`} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
@@ -42,6 +46,7 @@ function JobCardComponent({ job, variant = 'default' }: { job: Job; variant?: Jo
 
       {/* Middle Row: Title */}
       <Text numberOfLines={variant === 'compact' ? 2 : 3} style={styles.title}>{job.title}</Text>
+      <View style={styles.matchRow}><View style={[styles.matchBadge, match.percentage >= 80 && styles.matchStrong]}><Sparkles size={13} color={match.percentage >= 80 ? '#fff' : colors.primary} /><Text style={[styles.matchPercent, match.percentage >= 80 && styles.matchPercentStrong]}>{match.percentage}%</Text><Text style={[styles.matchLabel, match.percentage >= 80 && styles.matchPercentStrong]}>{match.label}</Text></View><Text numberOfLines={1} style={styles.nextStep}>{match.nextStep}</Text></View>
 
       {/* Timeline Row */}
       {variant !== 'compact' ? (
@@ -86,6 +91,7 @@ const styles = StyleSheet.create({
   verifiedText: { color: colors.primary, fontSize: 10.5, fontWeight: '700' },
   bookmark: { width: 34, height: 34, marginRight: -6, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: 16, lineHeight: 23, fontWeight: '800', marginTop: 9 }, 
+  matchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 9 }, matchBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 9, backgroundColor: colors.primaryLight }, matchStrong: { backgroundColor: colors.primary }, matchPercent: { color: colors.primaryDeep, fontSize: 11, fontWeight: '900' }, matchLabel: { color: colors.primary, fontSize: 9.5, fontWeight: '800' }, matchPercentStrong: { color: '#fff' }, nextStep: { flex: 1, color: colors.textSecondary, fontSize: 9.5 },
   timeline: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 10, paddingVertical: 7, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border }, 
   dateItem: { flexGrow: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }, 
   dateText: { color: colors.textSecondary, fontSize: 11, lineHeight: 16 }, 

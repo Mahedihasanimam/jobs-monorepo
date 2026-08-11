@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#008A60",
+        "backgroundColor": "#006A4E",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -35,17 +35,18 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#008A60",
+          "backgroundColor": "#006A4E",
           "dark": {
-            "backgroundColor": "#006F4E"
+            "backgroundColor": "#004B37"
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ],
     "notification": {
       "icon": "./assets/images/notification-icon.png",
-      "color": "#008A60"
+      "color": "#006A4E"
     },
     "experiments": {
       "typedRoutes": true,

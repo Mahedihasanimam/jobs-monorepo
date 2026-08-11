@@ -13,7 +13,7 @@ import { colors } from '@/constants/colors';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useJobs } from '@/hooks/useJobs';
 import { useJobFiltersStore } from '@/store/jobFilters.store';
-import type { JobSort } from '@/types/job';
+import type { JobFilters, JobSort } from '@/types/job';
 import { toBanglaDigits } from '@/utils/date';
 
 const sortOptions: { value: JobSort; label: string }[] = [{ value: 'latest', label: 'সর্বশেষ' }, { value: 'deadline', label: 'আবেদনের শেষ তারিখ' }, { value: 'oldest', label: 'পুরনো' }];
@@ -21,7 +21,7 @@ const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
 
 export default function JobsScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ search?: string; deadline?: string; published?: string; category?: string; qualification?: 'diploma'; preset?: 'all' | 'latest' | 'closing' }>();
+  const params = useLocalSearchParams<{ search?: string; deadline?: string; published?: string; category?: string; categoryKey?: string; qualification?: 'diploma'; preset?: string; filterApplied?: string }>();
   const storedFilters = useJobFiltersStore((state) => state.filters);
   const setFilters = useJobFiltersStore((state) => state.setFilters);
   const [search, setSearch] = useState(params.search ?? '');
@@ -29,22 +29,55 @@ export default function JobsScreen() {
   const debouncedSearch = useDebouncedValue(search);
 
   useEffect(() => {
-    const deadline = params.deadline ? Number(params.deadline) : undefined;
-    const published = params.published ? Number(params.published) : undefined;
-    if (deadline || published || params.category || params.qualification) setFilters({ sort: 'latest', category: params.category, qualification: params.qualification, deadlineRange: deadline === 7 ? 7 : 'all', publishedRange: published === 7 ? 7 : 'all' });
-    // Route presets only need applying when incoming params change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.deadline, params.published, params.category, params.qualification]);
+    if (params.filterApplied) {
+      setSearch('');
+      return;
+    }
+    const hasRouteFilters = [params.search, params.deadline, params.published, params.category, params.categoryKey, params.qualification, params.preset]
+      .some((value) => value !== undefined && value !== '');
+    // Opening /jobs after applying the filter form must preserve the Zustand
+    // filters. Only deep links, category cards and presets should replace them.
+    if (!hasRouteFilters) return;
+    const deadline = params.deadline !== undefined && params.deadline !== '' ? Number(params.deadline) : undefined;
+    const published = params.published !== undefined && params.published !== '' ? Number(params.published) : undefined;
+    const presetFilters: Record<string, Partial<JobFilters>> = {
+      today: { publishedRange: 0 }, ssc: { education: 'এসএসসি' }, hsc: { education: 'এইচএসসি' }, diploma: { qualification: 'diploma' }, graduate: { education: 'স্নাতক' },
+      ict: { categoryKey: 'ict' }, bank: { categoryKey: 'bank' }, railway: { categoryKey: 'railway' }, defence: { categoryKey: 'defence' }, women: { womenEligible: true }, freshers: { freshersAllowed: true }, highSalary: { highSalary: true },
+    };
+    const routeFilters = presetFilters[params.preset ?? ''] ?? {};
+    setSearch(params.search ?? routeFilters.search ?? '');
+    setFilters({ sort: 'latest', deadlineRange: deadline === 7 ? 7 : 'all', publishedRange: published === 0 ? 0 : published === 7 ? 7 : 'all', category: params.category, categoryKey: params.categoryKey, qualification: params.qualification, ...routeFilters, search: undefined });
+  }, [params.deadline, params.published, params.category, params.categoryKey, params.qualification, params.preset, params.search, params.filterApplied, setFilters]);
 
   const filters = useMemo(() => ({ ...storedFilters, search: debouncedSearch || undefined }), [storedFilters, debouncedSearch]);
   const query = useJobs(filters);
   const jobs = useMemo(() => query.data?.pages.flatMap((page) => page.jobs) ?? [], [query.data]);
   const count = query.data?.pages[0]?.count ?? 0;
-  const activeFilterCount = [storedFilters.organization, storedFilters.category, storedFilters.location, storedFilters.employmentType, storedFilters.qualification, storedFilters.deadlineRange !== 'all' ? storedFilters.deadlineRange : null, storedFilters.publishedRange !== 'all' ? storedFilters.publishedRange : null].filter(Boolean).length;
-  const activePreset = params.preset ?? (params.published === '7' ? 'latest' : params.deadline === '7' ? 'closing' : 'all');
+  const activeFilterCount = [
+    storedFilters.organization,
+    storedFilters.category,
+    storedFilters.categoryKey,
+    storedFilters.location,
+    storedFilters.employmentType,
+    storedFilters.qualification,
+    storedFilters.education,
+    storedFilters.subject,
+    storedFilters.age,
+    storedFilters.salary,
+    storedFilters.applicationFee,
+    storedFilters.experience,
+    storedFilters.gender,
+    storedFilters.freshersAllowed,
+    storedFilters.womenEligible,
+    storedFilters.highSalary,
+    storedFilters.minimumVacancies,
+    storedFilters.deadlineRange !== 'all' ? storedFilters.deadlineRange : null,
+    storedFilters.publishedRange !== 'all' ? storedFilters.publishedRange : null,
+  ].filter(Boolean).length;
+  const activePreset = ['all', 'latest', 'closing'].includes(params.preset ?? '') ? params.preset : (params.published === '7' ? 'latest' : params.deadline === '7' ? 'closing' : 'all');
   const applyPreset = (preset: 'all' | 'latest' | 'closing') => {
     setFilters({ sort: 'latest', deadlineRange: preset === 'closing' ? 7 : 'all', publishedRange: preset === 'latest' ? 7 : 'all' });
-    router.setParams({ preset, deadline: preset === 'closing' ? '7' : '', published: preset === 'latest' ? '7' : '', category: '' });
+    setSearch(''); router.setParams({ preset, deadline: preset === 'closing' ? '7' : '', published: preset === 'latest' ? '7' : '', category: '', search: '' });
   };
 
   return <ScreenContainer><OfflineBanner /><FlatList data={jobs} keyExtractor={(item) => String(item.id)} renderItem={({ item }) => <JobCard job={item} />} contentContainerStyle={styles.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />} keyboardShouldPersistTaps="handled"

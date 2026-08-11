@@ -38,6 +38,8 @@ import { JobCardSkeleton } from '@/components/job/JobCardSkeleton';
 import { useSavedJobsStore } from '@/store/savedJobs.store';
 import { useJobFiltersStore } from '@/store/jobFilters.store';
 import { toBanglaDigits } from '@/utils/date';
+import { useJobProfile } from '@/hooks/useJobProfile';
+import { matchJob } from '@/utils/jobMatch';
 
 const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
 
@@ -65,6 +67,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedQuick, setSelectedQuick] = useState<'all' | 'latest' | 'closing'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search.trim());
 
   const latest = useLatestJobs();
@@ -73,6 +77,8 @@ export default function HomeScreen() {
   const searchResults = useHomeSearch(debouncedSearch);
   const savedCount = useSavedJobsStore((state) => state.savedJobIds.length);
   const resetJobFilters = useJobFiltersStore((state) => state.resetFilters);
+  const { profile } = useJobProfile();
+  const personalized = (latest.data ?? []).map((job) => ({ job, match: matchJob(job, profile) })).sort((a, b) => b.match.percentage - a.match.percentage);
 
   const refreshing =
     latest.isRefetching || closing.isRefetching || stats.isRefetching;
@@ -155,27 +161,29 @@ export default function HomeScreen() {
           {/* Quick filters */}
           <View style={styles.quickRow}>
             <QuickFilter
-              active
+              active={selectedQuick === 'all'}
               icon={Briefcase}
               label="সব চাকরি"
-              onPress={() => goJobs({ preset: 'all' })}
+              onPress={() => { setSelectedQuick('all'); goJobs({ preset: 'all' }); }}
             />
             <QuickFilter
-              icon={Sparkles}
+              active={selectedQuick === 'latest'} icon={Sparkles}
               label="নতুন চাকরি"
-              onPress={() => goJobs({ published: '7', preset: 'latest' })}
+              onPress={() => { setSelectedQuick('latest'); goJobs({ published: '7', preset: 'latest' }); }}
             />
             <QuickFilter
-              icon={Clock}
+              active={selectedQuick === 'closing'} icon={Clock}
               label="শেষ সময় নিকটে"
-              onPress={() => goJobs({ deadline: '7', preset: 'closing' })}
+              onPress={() => { setSelectedQuick('closing'); goJobs({ deadline: '7', preset: 'closing' }); }}
             />
           </View>
 
           {debouncedSearch.length >= 2 ? <View style={styles.inlineResults}><View style={styles.inlineResultHead}><Text style={styles.inlineResultTitle}>অনুসন্ধানের ফলাফল</Text>{searchResults.data ? <Text style={styles.inlineResultCount}>{toBanglaDigits(searchResults.data.count)}টি পাওয়া গেছে</Text> : null}</View>{searchResults.isLoading ? <><JobCardSkeleton /><JobCardSkeleton /></> : searchResults.isError ? <View style={styles.emptyCard}><Text style={styles.emptyTitle}>অনুসন্ধান করা যাচ্ছে না</Text><Pressable style={styles.retryButton} onPress={() => void searchResults.refetch()}><Text style={styles.retryText}>আবার চেষ্টা করুন</Text></Pressable></View> : searchResults.data?.jobs.length ? searchResults.data.jobs.slice(0, 5).map((job) => <JobCard key={job.id} job={job} />) : <View style={styles.emptyCard}><Text style={styles.emptyTitle}>কোনো মিল পাওয়া যায়নি</Text><Text style={styles.emptyText}>অন্য পদ বা প্রতিষ্ঠানের নাম লিখে দেখুন।</Text></View>}</View> : null}
 
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetScroller}>{([['🔥 শেষ সময় নিকটে', 'closing'], ['🆕 আজকের নতুন চাকরি', 'today'], ['🎓 এসএসসি পাস চাকরি', 'ssc'], ['🎓 এইচএসসি পাস চাকরি', 'hsc'], ['🎓 ডিপ্লোমা চাকরি', 'diploma'], ['🎓 স্নাতক চাকরি', 'graduate'], ['💻 কম্পিউটার ও আইসিটি', 'ict'], ['🏦 ব্যাংক চাকরি', 'bank'], ['🚆 রেলওয়ে চাকরি', 'railway'], ['👮 প্রতিরক্ষা চাকরি', 'defence'], ['👩 নারীদের জন্য চাকরি', 'women'], ['🧑‍🎓 নতুন প্রার্থীদের চাকরি', 'freshers'], ['💰 বেশি বেতনের চাকরি', 'highSalary']] as [string, string][]).map(([label, preset]) => <Pressable key={preset} style={styles.searchPreset} onPress={() => goJobs(preset === 'closing' ? { preset, deadline: '7' } : { preset })}><Text style={styles.searchPresetText}>{label}</Text></Pressable>)}</ScrollView>
+
           {/* Job summary */}
-          <SectionTitle title="চাকরির সারসংক্ষেপ" onPress={() => router.push('/overview')} />
+          <SectionTitle title="আপনার চাকরির সুযোগ" onPress={() => router.push('/overview')} />
 
           <View style={styles.summaryCard}>
             <SummaryItem
@@ -244,38 +252,38 @@ export default function HomeScreen() {
             <CategoryItem
               icon={Train}
               label="রেলওয়ে"
-              onPress={() => goJobs({ category: 'রেলওয়ে' })}
+              active={selectedCategory === 'রেলওয়ে'} onPress={() => { setSelectedCategory('রেলওয়ে'); goJobs({ categoryKey: 'railway' }); }}
             />
             <CategoryItem
               icon={GraduationCap}
               label="শিক্ষা মন্ত্রণালয়"
-              onPress={() => goJobs({ category: 'শিক্ষা' })}
+              active={selectedCategory === 'শিক্ষা'} onPress={() => { setSelectedCategory('শিক্ষা'); goJobs({ categoryKey: 'education' }); }}
             />
             <CategoryItem
               icon={Cross}
               label="স্বাস্থ্য"
-              onPress={() => goJobs({ category: 'স্বাস্থ্য' })}
+              active={selectedCategory === 'স্বাস্থ্য'} onPress={() => { setSelectedCategory('স্বাস্থ্য'); goJobs({ categoryKey: 'health' }); }}
             />
             <CategoryItem
               icon={HeartHandshake}
               label="সামাজিক কল্যাণ"
-              onPress={() => goJobs({ category: 'সামাজিক কল্যাণ' })}
+              active={selectedCategory === 'সামাজিক কল্যাণ'} onPress={() => { setSelectedCategory('সামাজিক কল্যাণ'); goJobs({ categoryKey: 'welfare' }); }}
             />
             <CategoryItem
               icon={Landmark}
               label="জনপ্রশাসন"
-              onPress={() => goJobs({ category: 'জনপ্রশাসন' })}
+              active={selectedCategory === 'জনপ্রশাসন'} onPress={() => { setSelectedCategory('জনপ্রশাসন'); goJobs({ categoryKey: 'administration' }); }}
             />
             <CategoryItem
               icon={GraduationCap}
               label="ডিপ্লোমা চাকরি"
-              onPress={() => goJobs({ qualification: 'diploma' })}
+              active={selectedCategory === 'ডিপ্লোমা'} onPress={() => { setSelectedCategory('ডিপ্লোমা'); goJobs({ preset: 'diploma' }); }}
             />
             <CategoryItem icon={LayoutGrid} label="আরও" onPress={() => router.push('/categories')} />
           </View>
 
           {/* Latest jobs */}
-          <SectionTitle title="সর্বশেষ চাকরির বিজ্ঞপ্তি" onPress={() => goJobs()} />
+          <SectionTitle title="আপনার উপযোগী চাকরি" onPress={() => goJobs()} />
 
           <View style={styles.jobList}>
             {latest.isLoading ? (
@@ -288,14 +296,14 @@ export default function HomeScreen() {
               <View style={styles.errorCard}>
                 <Text style={styles.errorTitle}>চাকরির তথ্য লোড করা যাচ্ছে না</Text>
                 <Text style={styles.errorText}>
-                  ইন্টারনেট সংযোগ ও API কনফিগারেশন যাচাই করুন।
+                  ইন্টারনেট সংযোগ ও তথ্যসেবা কনফিগারেশন যাচাই করুন।
                 </Text>
                 <Pressable style={styles.retryButton} onPress={() => void latest.refetch()}>
                   <Text style={styles.retryText}>আবার চেষ্টা করুন</Text>
                 </Pressable>
               </View>
             ) : latest.data?.length ? (
-              latest.data.slice(0, 6).map((job) => <JobCard key={job.id} job={job} />)
+              personalized.slice(0, 6).map(({ job }) => <JobCard key={job.id} job={job} />)
             ) : (
               <View style={styles.emptyCard}>
                 <Text style={styles.emptyTitle}>কোনো চাকরি পাওয়া যায়নি</Text>
@@ -401,18 +409,20 @@ function SummaryItem({
 function CategoryItem({
   icon: Icon,
   label,
+  active = false,
   onPress,
 }: {
   icon: React.ComponentType<any>;
   label: string;
+  active?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable style={styles.categoryItem} onPress={onPress}>
-      <View style={styles.categoryIconBox}>
-        <Icon size={22} color={COLORS.primaryDark} strokeWidth={1.7} />
+      <View style={[styles.categoryIconBox, active && styles.categoryIconBoxActive]}>
+        <Icon size={22} color={active ? '#fff' : COLORS.primaryDark} strokeWidth={1.7} />
       </View>
-      <Text style={styles.categoryText} numberOfLines={2}>
+      <Text style={[styles.categoryText, active && styles.categoryTextActive]} numberOfLines={2}>
         {label}
       </Text>
     </Pressable>
@@ -541,6 +551,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 17,
   },
+  presetScroller: { gap: 7, paddingBottom: 14 }, searchPreset: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 17, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface }, searchPresetText: { color: COLORS.text2, fontSize: 10.5, fontWeight: '700' },
   inlineResults: { gap: 9, marginTop: 16, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.softSurface },
   inlineResultHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
   inlineResultTitle: { color: COLORS.text, fontSize: 13, fontWeight: '800' },
@@ -724,6 +735,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  categoryIconBoxActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary }, categoryTextActive: { color: COLORS.primaryDark, fontWeight: '800' },
   categoryText: {
     marginTop: 4,
     color: '#59645F',

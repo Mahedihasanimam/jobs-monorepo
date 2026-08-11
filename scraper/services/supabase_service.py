@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple
 from models.job import Job
 from models.exam_notice import ExamNotice
 from utils.logger import get_logger
+from utils.job_notice import is_recruitment_notice
 
 logger = get_logger(__name__)
 
@@ -70,14 +71,9 @@ class SupabaseJobService:
             return 0
         if not self.is_configured():
             return 0
-            
         try:
-            response = self.client.table("jobs")\
-                .update({"is_active": False})\
-                .lt("deadline", today)\
-                .eq("is_active", True)\
-                .execute()
-                
+            response = self.client.table("jobs").update({"is_active": False})\
+                .lt("deadline", today).eq("is_active", True).execute()
             count = len(response.data) if response.data else 0
             if count > 0:
                 logger.info(f"Marked {count} expired jobs as inactive.")
@@ -86,6 +82,30 @@ class SupabaseJobService:
             logger.error(f"Failed to mark expired jobs: {e}")
             return 0
 
+    def quarantine_non_recruitment_jobs(self, dry_run: bool = False) -> int:
+        """Hide misclassified notices and remove derived eligibility claims."""
+        if not self.is_configured() or dry_run:
+            return 0
+        try:
+            rows = self.client.table("jobs").select("id,title,source").execute().data or []
+            invalid_ids = [row["id"] for row in rows if row.get("source") != "Teletalk AllJobs" and not is_recruitment_notice(row.get("title") or "")]
+            if not invalid_ids:
+                return 0
+            payload = {
+                "is_active": False, "education": None, "subject": None, "experience": None,
+                "age_requirement": None, "gender_requirement": None, "quota_requirement": None,
+                "salary": None, "application_fee": None, "location": None, "vacancies": None,
+                "freshers_allowed": None, "eligibility_summary": None, "eligible_applicants": None,
+                "requirement_confidence": {}, "requirement_sources": {},
+                "circular_processing_status": "not_recruitment",
+            }
+            response = self.client.table("jobs").update(payload).in_("id", invalid_ids).execute()
+            count = len(response.data) if response.data else 0
+            logger.info("Quarantined %s non-recruitment notices.", count)
+            return count
+        except Exception as error:
+            logger.error("Failed to quarantine non-recruitment notices: %s", error)
+            return 0
     def upsert_exam_notices(self, notices: List[ExamNotice], dry_run: bool = False) -> int:
         if not notices:
             return 0

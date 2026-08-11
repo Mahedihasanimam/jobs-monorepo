@@ -1,9 +1,11 @@
 import argparse
 import asyncio
+import os
 import sys
 from dotenv import load_dotenv
 from utils.logger import get_logger
 from services.supabase_service import SupabaseJobService
+from services.pdf_enrichment import enrich_job_from_pdf
 
 from scrapers.bpsc import BPSCScraper
 from scrapers.teletalk import TeletalkScraper
@@ -23,7 +25,7 @@ SCRAPER_REGISTRY = {
     "education": EducationScraper
 }
 
-async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: SupabaseJobService):
+async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: SupabaseJobService, process_pdfs: bool = True):
     """Runs a single scraper and stores the results."""
     
     scraper_class = SCRAPER_REGISTRY.get(scraper_id)
@@ -54,6 +56,19 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
                 
         jobs = list(unique_jobs.values())
         deduped_count = len(jobs)
+
+        if process_pdfs:
+            concurrency = max(1, int(os.environ.get("PDF_PROCESSING_CONCURRENCY", "2")))
+            semaphore = asyncio.Semaphore(concurrency)
+            async def enrich(job):
+                async with semaphore:
+                    return await enrich_job_from_pdf(job)
+            logger.info(f"[{scraper.name}] Extracting circular requirements from {sum(bool(job.circular_url) for job in jobs)} document(s)...")
+            jobs = list(await asyncio.gather(*(enrich(job) for job in jobs)))
+            rejected = sum(job.circular_processing_status == "not_recruitment" for job in jobs)
+            if rejected:
+                logger.warning(f"[{scraper.name}] Rejected {rejected} document(s) that did not contain recruitment requirements.")
+            jobs = [job for job in jobs if job.circular_processing_status != "not_recruitment"]
         
         logger.info(f"[{scraper.name}] Fetched {fetched_count} jobs. After deduplication: {deduped_count} jobs.")
         
@@ -82,6 +97,7 @@ async def main():
     parser = argparse.ArgumentParser(description="Bangladesh Government Job Scraper")
     parser.add_argument("--source", nargs="+", choices=SCRAPER_REGISTRY.keys(), help="Specific sources to scrape")
     parser.add_argument("--dry-run", action="store_true", help="Run without saving to database")
+    parser.add_argument("--skip-pdf", action="store_true", help="Skip circular PDF extraction/OCR")
     args = parser.parse_args()
     
     supabase = SupabaseJobService()
@@ -97,7 +113,7 @@ async def main():
     total_updated = 0
     
     for source in sources:
-        fetched, new, updated = await run_scraper(source, args.dry_run, supabase)
+        fetched, new, updated = await run_scraper(source, args.dry_run, supabase, process_pdfs=not args.skip_pdf)
         total_fetched += fetched
         total_new += new
         total_updated += updated
@@ -107,6 +123,7 @@ async def main():
     logger.info(f"Total Upserted: {total_new + total_updated}")
     
     if not args.dry_run:
+        supabase.quarantine_non_recruitment_jobs(dry_run=False)
         supabase.mark_expired_jobs(dry_run=False)
         supabase.mark_expired_exam_notices(dry_run=False)
 
