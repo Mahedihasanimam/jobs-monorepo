@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 import type { Job } from '@/types/job';
 import type { ExamNotice } from '@/types/examNotice';
 
@@ -26,6 +27,7 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(url && anonKey);
+const isWebServer = Platform.OS === 'web' && typeof window === 'undefined';
 
 // A harmless local URL keeps the bundle bootable so the UI can show a friendly
 // configuration state instead of crashing before React mounts.
@@ -34,9 +36,9 @@ export const supabase = createClient<Database>(
   anonKey ?? 'missing-anon-key',
   {
     auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
+      storage: isWebServer ? undefined : AsyncStorage,
+      autoRefreshToken: !isWebServer,
+      persistSession: !isWebServer,
       detectSessionInUrl: false,
     },
   },
