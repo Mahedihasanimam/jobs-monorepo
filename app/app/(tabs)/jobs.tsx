@@ -17,7 +17,7 @@ import type { JobFilters, JobSort } from '@/types/job';
 import { toBanglaDigits } from '@/utils/date';
 
 const sortOptions: { value: JobSort; label: string }[] = [{ value: 'latest', label: 'সর্বশেষ' }, { value: 'deadline', label: 'আবেদনের শেষ তারিখ' }, { value: 'oldest', label: 'পুরনো' }];
-const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
+const EMBLEM = require('@/assets/images/custom_emblem.png');
 
 export default function JobsScreen() {
   const router = useRouter();

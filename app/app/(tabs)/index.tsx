@@ -42,7 +42,7 @@ import { useJobProfile } from '@/hooks/useJobProfile';
 import { matchJob } from '@/utils/jobMatch';
 import { colors } from '@/constants/colors';
 
-const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
+const EMBLEM = require('@/assets/images/custom_emblem.png');
 
 const COLORS = {
   primary: '#008A60',

@@ -10,7 +10,7 @@ import { colors } from '@/constants/colors';
 import { useJobs } from '@/hooks/useJobs';
 import { toBanglaDigits } from '@/utils/date';
 
-const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
+const EMBLEM = require('@/assets/images/custom_emblem.png');
 
 export default function NoticesScreen() {
   const query = useJobs({ sort: 'latest' });

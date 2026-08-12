@@ -9,7 +9,7 @@ import { colors } from '@/constants/colors';
 import { useSavedJobs } from '@/hooks/useJob';
 import { useSavedJobsStore } from '@/store/savedJobs.store';
 
-const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
+const EMBLEM = require('@/assets/images/custom_emblem.png');
 
 export default function SavedScreen() {
   const ids = useSavedJobsStore((state) => state.savedJobIds);

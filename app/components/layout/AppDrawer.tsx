@@ -10,7 +10,7 @@ export function AppDrawer({ visible, onClose }: { visible: boolean; onClose: () 
   const go = (path: '/(tabs)' | '/jobs' | '/saved' | '/exams' | '/applied', params?: Record<string, string>) => { onClose(); router.push({ pathname: path, params }); };
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <View style={styles.frame}><Pressable accessibilityLabel="মেনু বন্ধ করুন" style={styles.backdrop} onPress={onClose} />
-      <SafeAreaView style={styles.drawer}><View style={styles.brand}><Image source={require('@/assets/images/bd-government-emblem.jpg')} contentFit="contain" style={styles.emblem} /><View style={styles.brandText}><Text style={styles.brandTitle}>সরকারি চাকরি</Text><Text style={styles.brandSub}>বাংলাদেশের সরকারি চাকরির তথ্য</Text></View><Pressable style={styles.close} onPress={onClose}><X size={23} color={colors.text} /></Pressable></View>
+      <SafeAreaView style={styles.drawer}><View style={styles.brand}><Image source={require('@/assets/images/custom_emblem.png')} contentFit="contain" style={styles.emblem} /><View style={styles.brandText}><Text style={styles.brandTitle}>সরকারি চাকরি</Text><Text style={styles.brandSub}>বাংলাদেশের সরকারি চাকরির তথ্য</Text></View><Pressable style={styles.close} onPress={onClose}><X size={23} color={colors.text} /></Pressable></View>
         <Text style={styles.label}>প্রধান মেনু</Text>
         <Item icon={Home} label="হোম" onPress={() => go('/(tabs)')} />
         <Item icon={BriefcaseBusiness} label="সকল চাকরি" onPress={() => go('/jobs')} />

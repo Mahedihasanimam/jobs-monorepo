@@ -4,7 +4,7 @@ import { FlatList, Image, Pressable, StyleSheet, Text, useWindowDimensions, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 
-const EMBLEM = require('@/assets/images/bd-government-emblem.jpg');
+const EMBLEM = require('@/assets/images/custom_emblem.png');
 const slides = [
   { key: 'problem', icon: Globe2, eyebrow: 'একটি পরিচিত সমস্যা', title: 'চাকরি খুঁজতে আর নয়\nwebsite থেকে website', text: 'মন্ত্রণালয় ও সরকারি দপ্তরের অসংখ্য website ঘুরে সঠিক নিয়োগ বিজ্ঞপ্তি খোঁজা সময়সাপেক্ষ। গুরুত্বপূর্ণ circular চোখ এড়িয়ে যাওয়ার দুশ্চিন্তাও থাকে।' },
   { key: 'solution', icon: FileCheck2, eyebrow: 'আপনার জন্য সহজ সমাধান', title: 'চাকরি, যোগ্যতা ও circular এখন একই platform-এ', text: 'বিভিন্ন সরকারি প্রতিষ্ঠানের প্রকাশিত চাকরি, আবেদনের যোগ্যতা, শেষ তারিখ এবং official PDF সাজানোভাবে দেখুন—এক জায়গা থেকেই।' },
