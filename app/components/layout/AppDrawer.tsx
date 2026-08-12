@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { Bookmark, BriefcaseBusiness, CalendarClock, ChevronRight, Home, Info, X } from 'lucide-react-native';
+import { Bookmark, BriefcaseBusiness, CalendarClock, ChevronRight, Home, Info, X, Send } from 'lucide-react-native';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 
 export function AppDrawer({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const router = useRouter();
-  const go = (path: '/(tabs)' | '/jobs' | '/saved' | '/exams', params?: Record<string, string>) => { onClose(); router.push({ pathname: path, params }); };
+  const go = (path: '/(tabs)' | '/jobs' | '/saved' | '/exams' | '/applied', params?: Record<string, string>) => { onClose(); router.push({ pathname: path, params }); };
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <View style={styles.frame}><Pressable accessibilityLabel="মেনু বন্ধ করুন" style={styles.backdrop} onPress={onClose} />
       <SafeAreaView style={styles.drawer}><View style={styles.brand}><Image source={require('@/assets/images/bd-government-emblem.jpg')} contentFit="contain" style={styles.emblem} /><View style={styles.brandText}><Text style={styles.brandTitle}>সরকারি চাকরি</Text><Text style={styles.brandSub}>বাংলাদেশের সরকারি চাকরির তথ্য</Text></View><Pressable style={styles.close} onPress={onClose}><X size={23} color={colors.text} /></Pressable></View>
@@ -16,6 +16,7 @@ export function AppDrawer({ visible, onClose }: { visible: boolean; onClose: () 
         <Item icon={BriefcaseBusiness} label="সকল চাকরি" onPress={() => go('/jobs')} />
         <Item icon={CalendarClock} label="পরীক্ষা ও প্রবেশপত্রের হালনাগাদ" onPress={() => go('/exams')} />
         <Item icon={Bookmark} label="সংরক্ষিত চাকরি" onPress={() => go('/saved')} />
+        <Item icon={Send} label="আবেদনকৃত চাকরি" onPress={() => go('/applied')} />
         <View style={styles.divider} /><Item icon={Info} label="অ্যাপ সম্পর্কে" onPress={onClose} />
         <Text style={styles.note}>তথ্য সংশ্লিষ্ট সরকারি প্রতিষ্ঠানের প্রকাশিত বিজ্ঞপ্তি থেকে সংগ্রহ করা হয়।</Text>
       </SafeAreaView>

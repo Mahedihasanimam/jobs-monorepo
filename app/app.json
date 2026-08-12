@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.govtjobsbd"
+      "bundleIdentifier": "com.mehedi.govtjobsbd"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.govtjobsbd"
+      "package": "com.mehedi.govtjobsbd",
+      "googleServicesFile": "./google-services.json"
     },
     "androidStatusBar": {
       "backgroundColor": "#004B37",
@@ -60,6 +61,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5b1da5f8-b3ad-45cb-b72c-d3a1020eab8d"
+      }
+    },
+    "owner": "mahedi25"
   }
 }

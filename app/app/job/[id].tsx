@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, BadgeCheck, Bookmark, BookOpenCheck, BriefcaseBusiness, CheckCircle2, ChevronLeft, ExternalLink, FileText, GraduationCap, MapPin, Maximize2, Share2, UserCheck, Users, WalletCards } from 'lucide-react-native';
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { AlertTriangle, BadgeCheck, BellRing, Bookmark, BookOpenCheck, BriefcaseBusiness, CheckCircle2, ChevronLeft, ExternalLink, FileText, GraduationCap, MapPin, Maximize2, Share2, UserCheck, Users, WalletCards, X } from 'lucide-react-native';
+import { Alert, Modal as RNModal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CircularPdfViewer } from '@/components/pdf/CircularPdfViewer';
 import { DeadlineBadge } from '@/components/job/DeadlineBadge';
@@ -17,6 +17,9 @@ import { getJobShareMessage } from '@/utils/job';
 import { getValidUrl, openExternalUrl } from '@/utils/url';
 import { useJobProfile } from '@/hooks/useJobProfile';
 import { matchJob, type MatchStatus } from '@/utils/jobMatch';
+import { useAppliedJobsStore } from '@/store/appliedJobs.store';
+import { registerForPushNotificationsAsync, subscribeToJobUpdates } from '@/services/notification.service';
+import { useState } from 'react';
 
 export default function JobDetailsScreen() {
   const router = useRouter();
@@ -25,12 +28,40 @@ export default function JobDetailsScreen() {
   const query = useJob(jobId);
   const saved = useSavedJobsStore((state) => state.savedJobIds.includes(jobId));
   const toggle = useSavedJobsStore((state) => state.toggleSaved);
+  const markApplied = useAppliedJobsStore((state) => state.markApplied);
   const job = query.data;
   const { profile } = useJobProfile();
+  
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
   const confirmOpen = (url?: string | null) => {
     if (!getValidUrl(url)) { Alert.alert('লিংক পাওয়া যায়নি', 'এই চাকরির জন্য সঠিক অফিসিয়াল লিংক দেওয়া নেই।'); return; }
     Alert.alert('অফিসিয়াল ওয়েবসাইট', 'আপনাকে অফিসিয়াল ওয়েবসাইটে নিয়ে যাওয়া হবে।', [{ text: 'বাতিল', style: 'cancel' }, { text: 'চালিয়ে যান', onPress: () => void openExternalUrl(url) }]);
+  };
+
+  const handleApply = (url?: string | null) => {
+    if (!getValidUrl(url)) { Alert.alert('লিংক পাওয়া যায়নি', 'আবেদনের লিংক দেওয়া নেই।'); return; }
+    setPendingUrl(url || null);
+    setShowNotifyModal(true);
+  };
+
+  const onAcceptNotify = async () => {
+    setShowNotifyModal(false);
+    const token = await registerForPushNotificationsAsync();
+    if (token) {
+      await subscribeToJobUpdates(jobId, token);
+    } else {
+      Alert.alert('ত্রুটি', 'নোটিফিকেশন অনুমতি পাওয়া যায়নি। সেটিংসে গিয়ে অনুমতি দিন।');
+    }
+    markApplied(jobId);
+    void openExternalUrl(pendingUrl);
+  };
+
+  const onDeclineNotify = () => {
+    setShowNotifyModal(false);
+    markApplied(jobId);
+    void openExternalUrl(pendingUrl);
   };
 
   if (query.isLoading) return <SafeAreaView style={styles.safe}><View style={styles.center}><Text style={styles.loading}>চাকরির তথ্য লোড হচ্ছে…</Text></View></SafeAreaView>;
@@ -61,7 +92,31 @@ export default function JobDetailsScreen() {
       <View style={styles.sourceCard}><Text style={styles.sectionTitle}>তথ্যসূত্র</Text><Text style={styles.sourceName}>{job.source || job.organization}</Text><Text style={styles.sourceHint}>আবেদন করার আগে অফিসিয়াল বিজ্ঞপ্তির তথ্য যাচাই করুন।</Text><Pressable style={styles.sourceButton} onPress={() => confirmOpen(job.source_url)}><ExternalLink size={17} color={colors.primary} /><Text style={styles.sourceButtonText}>অফিসিয়াল সোর্স দেখুন</Text></Pressable></View>
       <Text style={styles.disclaimer}>এই অ্যাপটি প্রকাশ্যে পাওয়া সরকারি চাকরির তথ্য একত্র করে। এটি বাংলাদেশ সরকারের অফিসিয়াল অ্যাপ নয়।</Text>
     </ScrollView>
-    <View style={styles.ctaBar}><Pressable disabled={expired} style={[styles.primary, expired && styles.disabled]} onPress={() => confirmOpen(applyLink)}><ExternalLink size={19} color="#fff" /><Text style={styles.primaryText}>{expired ? 'আবেদনের সময় শেষ' : 'আবেদন করুন'}</Text></Pressable>{job.circular_url ? <Pressable style={styles.secondary} onPress={openPdf}><FileText size={19} color={colors.primary} /><Text style={styles.secondaryText}>PDF দেখুন</Text></Pressable> : null}</View>
+    <View style={styles.ctaBar}><Pressable disabled={expired} style={[styles.primary, expired && styles.disabled]} onPress={() => handleApply(applyLink)}><ExternalLink size={19} color="#fff" /><Text style={styles.primaryText}>{expired ? 'আবেদনের সময় শেষ' : 'আবেদন করুন'}</Text></Pressable>{job.circular_url ? <Pressable style={styles.secondary} onPress={openPdf}><FileText size={19} color={colors.primary} /><Text style={styles.secondaryText}>PDF দেখুন</Text></Pressable> : null}</View>
+    <RNModal visible={showNotifyModal} transparent animationType="fade">
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalContent}>
+          <Pressable style={styles.modalClose} onPress={onDeclineNotify}>
+            <X size={20} color={colors.textSecondary} />
+          </Pressable>
+          <View style={styles.modalIconBg}>
+            <BellRing size={28} color={colors.primary} />
+          </View>
+          <Text style={styles.modalTitle}>ভবিষ্যৎ আপডেট চান?</Text>
+          <Text style={styles.modalDesc}>
+            আপনি কি এই চাকরির ভবিষ্যৎ আপডেট (যেমন- এডমিট কার্ড, পরীক্ষার তারিখ) নোটিফিকেশনের মাধ্যমে পেতে চান?
+          </Text>
+          <View style={styles.modalActions}>
+            <Pressable style={styles.modalBtnSec} onPress={onDeclineNotify}>
+              <Text style={styles.modalBtnSecText}>না, ধন্যবাদ</Text>
+            </Pressable>
+            <Pressable style={styles.modalBtnPri} onPress={onAcceptNotify}>
+              <Text style={styles.modalBtnPriText}>হ্যাঁ, চালু করুন</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </RNModal>
   </SafeAreaView>;
 }
 
@@ -81,4 +136,5 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background }, header: { minHeight: 58, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.card }, headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, headerTitle: { flex: 1, color: colors.text, fontSize: 17, textAlign: 'center', fontWeight: '700' }, headerActions: { minWidth: 88, flexDirection: 'row' }, center: { flex: 1, justifyContent: 'center', alignItems: 'center' }, loading: { color: colors.textSecondary }, content: { padding: 16, paddingBottom: 130, gap: 14 }, hero: { padding: 18, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, ...shadow }, orgRow: { flexDirection: 'row', alignItems: 'center', gap: 12 }, orgText: { flex: 1 }, org: { color: colors.primaryDeep, fontSize: 14, fontWeight: '900' }, verified: { color: colors.textSecondary, fontSize: 11, marginTop: 4 }, title: { color: colors.text, fontSize: 22, lineHeight: 31, fontWeight: '800', marginTop: 14 }, badges: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 16 }, timelineCard: { padding: 16, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }, timelineHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, timelineTitle: { color: colors.text, fontSize: 15, fontWeight: '900' }, status: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 12, backgroundColor: colors.primaryLight }, statusExpired: { backgroundColor: '#EEF1EF' }, statusText: { color: colors.primary, fontSize: 10, fontWeight: '800' }, statusExpiredText: { color: colors.textSecondary }, timelineRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 17 }, timelinePoint: { minWidth: 110 }, point: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.primary, marginBottom: 7 }, pointEnd: { backgroundColor: colors.red }, timelineLine: { flex: 1, height: 2, backgroundColor: colors.border, marginTop: 5, marginHorizontal: -86 }, timelineLabel: { color: colors.textSecondary, fontSize: 10 }, timelineValue: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 3 }, infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, padding: 10, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }, section: { padding: 18, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }, sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '800', marginBottom: 9 }, body: { color: colors.text, fontSize: 15, lineHeight: 25 }, pdfCard: { height: 500, padding: 12, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' }, pdfHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4, paddingBottom: 12 }, pdfCopy: { flex: 1 }, pdfHint: { color: colors.textSecondary, fontSize: 11, marginTop: -5 }, pdfExpand: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 10, backgroundColor: colors.primary }, pdfExpandText: { color: '#fff', fontSize: 11, fontWeight: '900' }, pdfPreview: { flex: 1, borderRadius: radius.md, backgroundColor: colors.background }, pdfLoading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }, sourceCard: { padding: 18, borderRadius: radius.lg, backgroundColor: colors.primaryLight, borderWidth: 1, borderColor: '#CBE8DE' }, sourceName: { color: colors.primaryDeep, fontSize: 15, fontWeight: '700' }, sourceHint: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 6 }, sourceButton: { alignSelf: 'flex-start', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 }, sourceButtonText: { color: colors.primary, fontSize: 13, fontWeight: '800' }, disclaimer: { color: colors.textSecondary, fontSize: 11, lineHeight: 18, textAlign: 'center', paddingHorizontal: 15 }, ctaBar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, padding: 14, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border }, primary: { flex: 1, minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radius.md, backgroundColor: colors.primary }, primaryText: { color: '#fff', fontSize: 14, fontWeight: '800' }, disabled: { backgroundColor: colors.textSecondary }, secondary: { flex: 1, minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: radius.md, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.card }, secondaryText: { color: colors.primary, fontSize: 13, fontWeight: '800' },
   requirementsCard: { padding: 18, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: '#CBE8DE' }, requirementsHead: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 5 }, requirementsIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight }, requirementsCopy: { flex: 1 }, requirementsHint: { color: colors.textSecondary, fontSize: 11, marginTop: -5 }, requirementRow: { flexDirection: 'row', gap: 10, padding: 12, marginTop: 7, borderRadius: 11 }, requirementIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }, requirementCopy: { flex: 1 }, requirementTitle: { color: colors.primaryDeep, fontSize: 12, fontWeight: '800' }, requirementBody: { color: colors.text, fontSize: 14, lineHeight: 22, marginTop: 4 }, diplomaBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.primaryLight }, diplomaBadgeText: { color: colors.primary, fontSize: 12, fontWeight: '800' }, questionsCard: { padding: 18, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }, questionsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }, questionsHint: { color: colors.textSecondary, fontSize: 11, lineHeight: 17 }, questionRow: { minHeight: 66, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }, questionIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primaryLight }, questionCopy: { flex: 1 }, questionTitle: { color: colors.text, fontSize: 13, lineHeight: 18, fontWeight: '700' }, questionMeta: { color: colors.textSecondary, fontSize: 10, marginTop: 4 }, noQuestions: { paddingVertical: 18, alignItems: 'center' }, noQuestionsTitle: { color: colors.text, fontSize: 13, fontWeight: '700', marginBottom: 4 }, questionError: { color: colors.error, fontSize: 11, marginTop: 8 }, questionDisclaimer: { color: colors.textSecondary, fontSize: 9.5, lineHeight: 15, marginTop: 10 },
   matchCard: { padding: 17, borderRadius: radius.lg, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border }, matchHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, matchEyebrow: { color: colors.textSecondary, fontSize: 11, fontWeight: '700' }, matchLabel: { color: colors.text, fontSize: 17, fontWeight: '900', marginTop: 3 }, scoreBadge: { minWidth: 62, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: colors.primaryLight }, scoreValue: { color: colors.primaryDeep, fontSize: 17, fontWeight: '900' }, extractionNote: { color: colors.textSecondary, fontSize: 10, lineHeight: 16, marginTop: 8 }, matchDivider: { height: 1, backgroundColor: colors.border, marginTop: 13 }, matchSection: { color: colors.text, fontSize: 12, fontWeight: '900', marginTop: 13, marginBottom: 6 }, reasonRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 }, matchGood: { flex: 1, color: colors.text, fontSize: 11.5, lineHeight: 18 }, matchConcern: { flex: 1, color: colors.text, fontSize: 11.5, lineHeight: 18 }, nextAction: { marginTop: 10, padding: 11, borderRadius: 10, backgroundColor: colors.primaryLight }, nextActionTitle: { color: colors.primaryDeep, fontSize: 10, fontWeight: '900' }, nextActionText: { color: colors.text, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 20 }, modalContent: { width: '100%', maxWidth: 340, backgroundColor: colors.card, borderRadius: 20, padding: 24, alignItems: 'center', ...shadow }, modalClose: { position: 'absolute', right: 16, top: 16, padding: 4 }, modalIconBg: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 16, marginTop: 8 }, modalTitle: { color: colors.text, fontSize: 19, fontWeight: '800', marginBottom: 8, textAlign: 'center' }, modalDesc: { color: colors.textSecondary, fontSize: 13, lineHeight: 20, textAlign: 'center', marginBottom: 24 }, modalActions: { flexDirection: 'row', gap: 12, width: '100%' }, modalBtnSec: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F0F2F5', alignItems: 'center' }, modalBtnSecText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' }, modalBtnPri: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center' }, modalBtnPriText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

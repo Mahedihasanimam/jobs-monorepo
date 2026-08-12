@@ -1,14 +1,17 @@
-import { AlertCircle, Bell, ChevronRight, FileText, Globe2, Info, Mail, Moon, ShieldCheck } from 'lucide-react-native';
+import { AlertCircle, Bell, ChevronRight, FileText, Globe2, Info, Mail, Moon, ShieldCheck, BriefcaseBusiness } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { colors } from '@/constants/colors';
 import { radius } from '@/constants/layout';
 
 export default function MoreScreen() {
+  const router = useRouter();
   const comingSoon = () => Alert.alert('শিগগিরই আসছে', 'এই সুবিধাটি ভবিষ্যৎ সংস্করণের জন্য প্রস্তুত রাখা হয়েছে।');
   return <ScreenContainer><ScrollView contentContainerStyle={styles.content}><AppHeader title="আরও" subtitle="অ্যাপ সেটিংস ও প্রয়োজনীয় তথ্য" />
     <View style={styles.brand}><View style={styles.logo}><Text style={styles.logoText}>জব</Text></View><View style={{ flex: 1 }}><Text style={styles.brandTitle}>সরকারি চাকরি</Text><Text style={styles.brandText}>বাংলাদেশের সরকারি চাকরি এক জায়গায়</Text></View></View>
+    <Section title="আমার তথ্য"><MenuRow icon={BriefcaseBusiness} label="আমার আবেদনকৃত চাকরি" onPress={() => router.push('/applied')} /></Section>
     <Section title="পছন্দ"><MenuRow icon={Globe2} label="ভাষা" value="বাংলা" onPress={comingSoon} /><MenuRow icon={Bell} label="নোটিফিকেশন" value="শিগগিরই" onPress={comingSoon} /><MenuRow icon={Moon} label="ডার্ক মোড" trailing={<Switch disabled value={false} trackColor={{ false: colors.border, true: colors.primaryLight }} />} /></Section>
     <Section title="তথ্য"><MenuRow icon={Info} label="অ্যাপ সম্পর্কে" onPress={() => Alert.alert('সরকারি চাকরি', 'সংস্করণ ১.০.০\nসরকারি চাকরির বিজ্ঞপ্তি সহজে খুঁজে পাওয়ার জন্য তৈরি।')} /><MenuRow icon={ShieldCheck} label="তথ্যসূত্র" onPress={() => Alert.alert('তথ্যসূত্র', 'চাকরির তথ্য সংশ্লিষ্ট সরকারি প্রতিষ্ঠানের অফিসিয়াল প্রকাশনা থেকে সংগ্রহ করা হয়।')} /><MenuRow icon={FileText} label="গোপনীয়তা নীতি" onPress={comingSoon} /><MenuRow icon={Mail} label="যোগাযোগ" onPress={comingSoon} /></Section>
     <View style={styles.disclaimer}><AlertCircle size={18} color={colors.textSecondary} /><View style={{ flex: 1 }}><Text style={styles.disclaimerTitle}>ডিসক্লেইমার</Text><Text style={styles.disclaimerText}>এই অ্যাপটি প্রকাশ্যে পাওয়া সরকারি চাকরির তথ্য একত্র করে। এটি বাংলাদেশ সরকারের অফিসিয়াল অ্যাপ নয়। আবেদন করার আগে অফিসিয়াল বিজ্ঞপ্তি যাচাই করুন।</Text></View></View>

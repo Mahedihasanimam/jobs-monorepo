@@ -76,8 +76,8 @@ eas build --profile production --platform all
 Before production, replace the placeholder values in `app.json`:
 
 - `expo.name` and `expo.slug`
-- `ios.bundleIdentifier` (`com.example.govtjobsbd`)
-- `android.package` (`com.example.govtjobsbd`)
+- `ios.bundleIdentifier` (`com.mehedi.govtjobsbd`)
+- `android.package` (`com.mehedi.govtjobsbd`)
 - icons and splash artwork in `assets/images`
 - EAS project ID after `eas init`
 

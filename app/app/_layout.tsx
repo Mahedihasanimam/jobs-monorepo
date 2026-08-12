@@ -7,9 +7,17 @@ import { AppProviders } from '@/components/providers/AppProviders';
 import { colors } from '@/constants/colors';
 import { GOVT_BD_EMBLEM } from '@/constants/brand';
 import { OnboardingProvider, useOnboardingStatus } from '@/hooks/useOnboarding';
+import { requestNotificationPermissionAsync } from '@/services/notification.service';
+import { useEffect } from 'react';
 
 function RootNavigator() {
   const { isLoading, isComplete } = useOnboardingStatus();
+
+  useEffect(() => {
+    if (isComplete) {
+      void requestNotificationPermissionAsync();
+    }
+  }, [isComplete]);
 
   if (isLoading) return <View style={styles.loading}><Image source={GOVT_BD_EMBLEM} resizeMode="contain" style={styles.emblem} /></View>;
   return (<Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
@@ -36,7 +44,7 @@ export default function RootLayout() {
     <SafeAreaView
       style={{
         paddingTop: top - 60,
-        paddingBottom: bottom - 30,
+        paddingBottom: bottom - 35,
         flex: 1
       }}
     >
@@ -46,7 +54,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
           <OnboardingProvider>
             <AppProviders>
-            <StatusBar style="light" backgroundColor={colors.primaryDeep} translucent={false} />
+              <StatusBar style="light" backgroundColor={colors.primaryDeep} translucent={false} />
               <RootNavigator />
             </AppProviders>
           </OnboardingProvider>
