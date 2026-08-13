@@ -22,6 +22,17 @@ class SupabaseJobService:
     def is_configured(self) -> bool:
         return self.client is not None
 
+    def get_existing_jobs_by_source(self, source: str) -> Dict[str, dict]:
+        """Fetch existing jobs for a source to prevent re-processing."""
+        if not self.is_configured():
+            return {}
+        try:
+            response = self.client.table("jobs").select("*").eq("source", source).execute()
+            return {row["source_url"]: row for row in response.data} if response.data else {}
+        except Exception as e:
+            logger.error(f"Failed to fetch existing jobs for {source}: {e}")
+            return {}
+
     def upsert_jobs(self, jobs: List[Job], dry_run: bool = False) -> Tuple[int, int]:
         """
         Upserts jobs into Supabase in batch.

@@ -58,13 +58,34 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
         deduped_count = len(jobs)
 
         if process_pdfs:
-            concurrency = max(1, int(os.environ.get("PDF_PROCESSING_CONCURRENCY", "2")))
-            semaphore = asyncio.Semaphore(concurrency)
-            async def enrich(job):
-                async with semaphore:
-                    return await enrich_job_from_pdf(job)
-            logger.info(f"[{scraper.name}] Extracting circular requirements from {sum(bool(job.circular_url) for job in jobs)} document(s)...")
-            jobs = list(await asyncio.gather(*(enrich(job) for job in jobs)))
+            existing_jobs = supabase_service.get_existing_jobs_by_source(scraper.name)
+            
+            jobs_to_process = []
+            for job in jobs:
+                existing = existing_jobs.get(job.source_url)
+                if existing and existing.get("circular_processing_status"):
+                    # Restore the PDF extracted fields from DB so we don't overwrite with None on upsert
+                    for field in ["education", "subject", "experience", "age_requirement", "gender_requirement", 
+                                  "quota_requirement", "salary", "application_fee", "location", "vacancies", 
+                                  "freshers_allowed", "circular_text", "circular_document_hash", 
+                                  "circular_extraction_method", "circular_processing_status",
+                                  "requirement_confidence", "requirement_sources"]:
+                        if field in existing and existing[field] is not None:
+                            setattr(job, field, existing[field])
+                elif job.circular_url:
+                    jobs_to_process.append(job)
+
+            if jobs_to_process:
+                concurrency = max(1, int(os.environ.get("PDF_PROCESSING_CONCURRENCY", "10")))
+                semaphore = asyncio.Semaphore(concurrency)
+                async def enrich(job):
+                    async with semaphore:
+                        return await enrich_job_from_pdf(job)
+                logger.info(f"[{scraper.name}] Extracting circular requirements from {len(jobs_to_process)} NEW document(s)...")
+                await asyncio.gather(*(enrich(job) for job in jobs_to_process))
+            else:
+                logger.info(f"[{scraper.name}] All {sum(bool(job.circular_url) for job in jobs)} document(s) already processed. Skipping extraction.")
+            
             rejected = sum(job.circular_processing_status == "not_recruitment" for job in jobs)
             if rejected:
                 logger.warning(f"[{scraper.name}] Rejected {rejected} document(s) that did not contain recruitment requirements.")
