@@ -159,3 +159,29 @@ class SupabaseJobService:
         except Exception as error:
             logger.error(f"Failed to fetch device tokens: {error}")
             return []
+
+    def get_approaching_deadlines(self, days_away: int) -> List[dict]:
+        """Fetches active jobs whose deadline is exactly `days_away` days from today."""
+        from datetime import date, timedelta
+        target_date = (date.today() + timedelta(days=days_away)).isoformat()
+        if not self.is_configured():
+            return []
+        try:
+            response = self.client.table("jobs").select("id, title, organization, deadline").eq("is_active", True).eq("deadline", target_date).execute()
+            return response.data if response.data else []
+        except Exception as error:
+            logger.error(f"Failed to fetch jobs for deadline {target_date}: {error}")
+            return []
+
+    def get_job_subscribers(self, job_id: int) -> List[str]:
+        """Fetches device tokens for users subscribed to a specific job."""
+        if not self.is_configured():
+            return []
+        try:
+            response = self.client.table("job_subscriptions").select("token").eq("job_id", job_id).execute()
+            if response.data:
+                return [row["token"] for row in response.data]
+            return []
+        except Exception as error:
+            logger.error(f"Failed to fetch subscribers for job {job_id}: {error}")
+            return []
