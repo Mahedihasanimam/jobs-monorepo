@@ -146,3 +146,16 @@ class SupabaseJobService:
         except Exception as error:
             logger.error(f"Failed to mark expired exam notices: {error}")
             return 0
+
+    def get_all_device_tokens(self) -> List[str]:
+        """Fetches all device tokens for push notifications."""
+        if not self.is_configured():
+            return []
+        try:
+            response = self.client.table("device_tokens").select("token").execute()
+            if response.data:
+                return [row["token"] for row in response.data]
+            return []
+        except Exception as error:
+            logger.error(f"Failed to fetch device tokens: {error}")
+            return []

@@ -147,6 +147,32 @@ async def main():
         supabase.quarantine_non_recruitment_jobs(dry_run=False)
         supabase.mark_expired_jobs(dry_run=False)
         supabase.mark_expired_exam_notices(dry_run=False)
+        
+        # Send push notifications for new jobs
+        if total_new > 0:
+            logger.info(f"Triggering push notifications for {total_new} new jobs...")
+            import random
+            from services.notification_service import send_expo_push_notifications
+            
+            titles = [
+                f"🎉 {total_new}টি নতুন সরকারি চাকরির সুযোগ!",
+                f"🚀 নতুন {total_new}টি জব সার্কুলার প্রকাশিত হয়েছে!",
+                "আপনার স্বপ্নের সরকারি চাকরি হয়তো এখানেই!"
+            ]
+            bodies = [
+                "দেরি না করে এখনই অ্যাপে ঢুকে বিস্তারিত দেখে নিন এবং আবেদন করুন।",
+                "আপনার যোগ্যতা অনুযায়ী নতুন চাকরিগুলো চেক করে নিন আজই!",
+                "কপাল খুলতে পারে আপনারও! নতুন সার্কুলারগুলো মিস করবেন না।"
+            ]
+            
+            title = random.choice(titles)
+            body = random.choice(bodies)
+            
+            tokens = supabase.get_all_device_tokens()
+            if tokens:
+                await send_expo_push_notifications(tokens, title, body, data={"type": "new_jobs", "count": total_new})
+            else:
+                logger.info("No device tokens found to send notifications.")
 
 if __name__ == "__main__":
     asyncio.run(main())
