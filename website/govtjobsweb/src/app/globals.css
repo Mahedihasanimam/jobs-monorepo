@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: var(--noto-serif-bengali);
+  --font-body: var(--noto-sans-bengali);
+  --font-mono: var(--ibm-plex-mono);
+  --color-primary: #0b5d45;
+  --color-primary-deep: #0a4b39;
+  --color-primary-soft: #eaf5ee;
+  --color-gold: #c9952d;
+  --color-gold-soft: #f6edd9;
+  --color-ink: #142019;
+  --color-surface: #ffffff;
+  --color-bg: #f7f7f3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11, 93, 69, 0.04),
+      rgba(11, 93, 69, 0.01) 180px
+    ),
+    #f7f7f3;
+  color: var(--color-ink);
+}
+
+::selection {
+  background-color: #c9952d;
+  color: #ffffff;
+}
+
+/* visible keyboard focus everywhere */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #0b5d45;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.container-page {
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.seal-watermark {
+  opacity: 0.06;
+}
+
+.govt-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(244, 247, 245, 0.98)
+  );
+}
+
+.govt-divider {
+  border-color: rgba(17, 38, 31, 0.12);
+}
