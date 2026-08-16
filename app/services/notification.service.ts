@@ -4,12 +4,13 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
-// Configure how notifications are handled when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -73,6 +74,64 @@ export async function subscribeToJobUpdates(jobId: number, token: string) {
     return true;
   } catch (error) {
     console.error('Error subscribing to job:', error);
+    return false;
+  }
+}
+
+export async function unsubscribeFromJobUpdates(jobId: number, token: string) {
+  try {
+    await supabase.from('job_subscriptions').delete().match({ job_id: jobId, token: token });
+    return true;
+  } catch (error) {
+    console.error('Error unsubscribing from job:', error);
+    return false;
+  }
+}
+
+export type NotificationPreferences = {
+  wants_new_jobs: boolean;
+  wants_deadlines: boolean;
+};
+
+export async function getNotificationPreferences(token: string): Promise<NotificationPreferences | null> {
+  try {
+    const { data, error } = await supabase
+      .from('device_tokens')
+      .select('wants_new_jobs, wants_deadlines')
+      .eq('token', token)
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    // If data is null, the row doesn't exist yet, return defaults
+    if (!data) {
+      return {
+        wants_new_jobs: true,
+        wants_deadlines: true,
+      };
+    }
+    
+    return {
+      wants_new_jobs: data.wants_new_jobs ?? true,
+      wants_deadlines: data.wants_deadlines ?? true,
+    };
+  } catch (error) {
+    console.error('Error fetching notification preferences:', error);
+    return null;
+  }
+}
+
+export async function updateNotificationPreferences(token: string, prefs: Partial<NotificationPreferences>) {
+  try {
+    const { error } = await supabase
+      .from('device_tokens')
+      .update(prefs)
+      .eq('token', token);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error updating notification preferences:', error);
     return false;
   }
 }

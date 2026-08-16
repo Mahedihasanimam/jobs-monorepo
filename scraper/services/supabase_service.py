@@ -148,13 +148,14 @@ class SupabaseJobService:
             return 0
 
     def get_all_device_tokens(self) -> List[str]:
-        """Fetches all device tokens for push notifications."""
+        """Fetches device tokens that have opted in to new job notifications."""
         if not self.is_configured():
             return []
         try:
-            response = self.client.table("device_tokens").select("token").execute()
+            response = self.client.table("device_tokens").select("token, wants_new_jobs").execute()
             if response.data:
-                return [row["token"] for row in response.data]
+                # Default to True if wants_new_jobs is None
+                return [row["token"] for row in response.data if row.get("wants_new_jobs") is not False]
             return []
         except Exception as error:
             logger.error(f"Failed to fetch device tokens: {error}")
@@ -174,14 +175,31 @@ class SupabaseJobService:
             return []
 
     def get_job_subscribers(self, job_id: int) -> List[str]:
-        """Fetches device tokens for users subscribed to a specific job."""
+        """Fetches device tokens for users subscribed to a specific job who want deadline alerts."""
         if not self.is_configured():
             return []
         try:
-            response = self.client.table("job_subscriptions").select("token").eq("job_id", job_id).execute()
-            if response.data:
-                return [row["token"] for row in response.data]
-            return []
+            # Fetch subscribers
+            sub_response = self.client.table("job_subscriptions").select("token").eq("job_id", job_id).execute()
+            if not sub_response.data:
+                return []
+            
+            tokens = [row["token"] for row in sub_response.data]
+            
+            # Fetch preferences for these tokens
+            pref_response = self.client.table("device_tokens").select("token, wants_deadlines").in_("token", tokens).execute()
+            
+            # Filter tokens where wants_deadlines is False
+            valid_tokens = []
+            if pref_response.data:
+                prefs = {row["token"]: row.get("wants_deadlines") for row in pref_response.data}
+                for t in tokens:
+                    if prefs.get(t) is not False:
+                        valid_tokens.append(t)
+            else:
+                valid_tokens = tokens
+                
+            return valid_tokens
         except Exception as error:
             logger.error(f"Failed to fetch subscribers for job {job_id}: {error}")
             return []

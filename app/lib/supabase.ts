@@ -15,6 +15,18 @@ type Database = {
         Relationships: [];
       };
       exam_notices: { Row: ExamNotice & Record<string, unknown>; Insert: Partial<ExamNotice> & Pick<ExamNotice, 'title' | 'organization' | 'source' | 'source_url' | 'notice_type'> & Record<string, unknown>; Update: Partial<ExamNotice> & Record<string, unknown>; Relationships: []; };
+      device_tokens: {
+        Row: { token: string; platform: string; wants_new_jobs: boolean; wants_deadlines: boolean } & Record<string, unknown>;
+        Insert: { token: string; platform: string; wants_new_jobs?: boolean; wants_deadlines?: boolean } & Record<string, unknown>;
+        Update: Partial<{ token: string; platform: string; wants_new_jobs: boolean; wants_deadlines: boolean }> & Record<string, unknown>;
+        Relationships: [];
+      };
+      job_subscriptions: {
+        Row: { id: number; job_id: number; token: string; created_at: string } & Record<string, unknown>;
+        Insert: { id?: number; job_id: number; token: string; created_at?: string } & Record<string, unknown>;
+        Update: Partial<{ id: number; job_id: number; token: string; created_at: string }> & Record<string, unknown>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

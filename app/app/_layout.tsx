@@ -9,15 +9,21 @@ import { GOVT_BD_EMBLEM } from '@/constants/brand';
 import { OnboardingProvider, useOnboardingStatus } from '@/hooks/useOnboarding';
 import { requestNotificationPermissionAsync } from '@/services/notification.service';
 import { useEffect } from 'react';
+import { useSavedJobsStore } from '@/store/savedJobs.store';
 
 function RootNavigator() {
   const { isLoading, isComplete } = useOnboardingStatus();
+  const syncToBackend = useSavedJobsStore((state) => state.syncToBackend);
 
   useEffect(() => {
     if (isComplete) {
-      void requestNotificationPermissionAsync();
+      void requestNotificationPermissionAsync().then((granted) => {
+        if (granted) {
+          void syncToBackend();
+        }
+      });
     }
-  }, [isComplete]);
+  }, [isComplete, syncToBackend]);
 
   if (isLoading) return <View style={styles.loading}><Image source={GOVT_BD_EMBLEM} resizeMode="contain" style={styles.emblem} /></View>;
   return (<Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>

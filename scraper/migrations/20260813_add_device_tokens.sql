@@ -25,3 +25,6 @@ CREATE POLICY "Allow public update to device_tokens" ON device_tokens
 
 CREATE POLICY "Allow public insert to job_subscriptions" ON job_subscriptions
     FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public delete from job_subscriptions" ON job_subscriptions
+    FOR DELETE USING (true);

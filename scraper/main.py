@@ -56,10 +56,12 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
                 
         jobs = list(unique_jobs.values())
         deduped_count = len(jobs)
+        
+        # Calculate truly new jobs
+        existing_jobs = supabase_service.get_existing_jobs_by_source(scraper.name)
+        new_jobs = [job for job in jobs if job.source_url not in existing_jobs]
 
         if process_pdfs:
-            existing_jobs = supabase_service.get_existing_jobs_by_source(scraper.name)
-            
             jobs_to_process = []
             for job in jobs:
                 existing = existing_jobs.get(job.source_url)
@@ -102,13 +104,13 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
             logger.info(f"Fingerprint: {job.generate_fingerprint()}")
             
         logger.info(f"[{scraper.name}] Upserting {deduped_count} jobs to Supabase...")
-        new_count, updated_count = supabase_service.upsert_jobs(jobs, dry_run=dry_run)
+        _, updated_count = supabase_service.upsert_jobs(jobs, dry_run=dry_run)
         if hasattr(scraper, "scrape_exam_notices"):
             exam_notices = await scraper.scrape_exam_notices()
             exam_count = supabase_service.upsert_exam_notices(exam_notices, dry_run=dry_run)
             logger.info(f"[{scraper.name}] Upserted {exam_count} exam/admit notices.")
         
-        return fetched_count, new_count, updated_count
+        return fetched_count, new_jobs, deduped_count - len(new_jobs)
         
     except Exception as e:
         logger.exception(f"[{scraper.name}] Scraper failed: {e}")
@@ -130,18 +132,19 @@ async def main():
     logger.info(f"Starting scraper for sources: {', '.join(sources)}")
     
     total_fetched = 0
-    total_new = 0
+    all_new_jobs = []
     total_updated = 0
     
     for source in sources:
-        fetched, new, updated = await run_scraper(source, args.dry_run, supabase, process_pdfs=not args.skip_pdf)
+        fetched, new_jobs_from_source, updated = await run_scraper(source, args.dry_run, supabase, process_pdfs=not args.skip_pdf)
         total_fetched += fetched
-        total_new += new
+        all_new_jobs.extend(new_jobs_from_source)
         total_updated += updated
         
     logger.info("Scraping completed.")
     logger.info(f"Total Fetched: {total_fetched}")
-    logger.info(f"Total Upserted: {total_new + total_updated}")
+    logger.info(f"Total New Jobs: {len(all_new_jobs)}")
+    logger.info(f"Total Updated: {total_updated}")
     
     if not args.dry_run:
         supabase.quarantine_non_recruitment_jobs(dry_run=False)
@@ -149,28 +152,63 @@ async def main():
         supabase.mark_expired_exam_notices(dry_run=False)
         
         # Send push notifications for new jobs
+        total_new = len(all_new_jobs)
         if total_new > 0:
             logger.info(f"Triggering push notifications for {total_new} new jobs...")
             import random
             from services.notification_service import send_expo_push_notifications
             
-            titles = [
-                f"🎉 {total_new}টি নতুন সরকারি চাকরির সুযোগ!",
-                f"🚀 নতুন {total_new}টি জব সার্কুলার প্রকাশিত হয়েছে!",
-                "আপনার স্বপ্নের সরকারি চাকরি হয়তো এখানেই!"
-            ]
-            bodies = [
-                "দেরি না করে এখনই অ্যাপে ঢুকে বিস্তারিত দেখে নিন এবং আবেদন করুন।",
-                "আপনার যোগ্যতা অনুযায়ী নতুন চাকরিগুলো চেক করে নিন আজই!",
-                "কপাল খুলতে পারে আপনারও! নতুন সার্কুলারগুলো মিস করবেন না।"
-            ]
-            
-            title = random.choice(titles)
-            body = random.choice(bodies)
-            
             tokens = supabase.get_all_device_tokens()
             if tokens:
-                await send_expo_push_notifications(tokens, title, body, data={"type": "new_jobs", "count": total_new})
+                # If there are only a few new jobs, notify specifically for each (like deadline notifier)
+                if total_new <= 5:
+                    templates = [
+                        {
+                            "title": "🇧🇩 সরকারি চাকরির স্বপ্ন পূরণের সুযোগ! {title}-এ বিশাল নিয়োগ।",
+                            "body": "আপনার একটি সঠিক সিদ্ধান্ত আর আবেদন বদলে দিতে পারে আপনার ভবিষ্যত। দেরি না করে এখনি বিস্তারিত জানুন!"
+                        },
+                        {
+                            "title": "🇧🇩 আপনার জীবনের মোড় ঘুরতে পারে! {title}-এর নতুন সার্কুলার প্রকাশ।",
+                            "body": "সময় ফুরিয়ে যাওয়ার আগেই নিজের যোগ্যতা যাচাই করে আবেদন করে ফেলুন। হয়তো এটাই আপনার কাঙ্ক্ষিত চাকরি!"
+                        },
+                        {
+                            "title": "🇧🇩 বেকারত্ব ঘোচানোর সেরা সুযোগ! {title}-এর বিজ্ঞপ্তি মিস করবেন না।",
+                            "body": "হাজারো প্রার্থীর ভিড়ে নিজেকে প্রমাণ করার এটাই সুযোগ। এক ক্লিকেই জেনে নিন আবেদনের সব নিয়মকানুন।"
+                        },
+                        {
+                            "title": "🇧🇩 ক্যারিয়ার গড়ার মোক্ষম সময়! {title}-এর বিজ্ঞপ্তিটি আপনার জন্য।",
+                            "body": "একটি আবেদনই হতে পারে আপনার সফলতার চাবিকাঠি! এখনই অ্যাপে ঢুকে বিস্তারিত দেখে নিন।"
+                        }
+                    ]
+                    
+                    for job in all_new_jobs:
+                        template = random.choice(templates)
+                        org_name = job.organization or "নতুন প্রতিষ্ঠান"
+                        job_title = job.title or "নতুন পদ"
+                        # Use organization name if available, else job title for a cleaner hook
+                        display_name = org_name if job.organization else job_title
+                        
+                        title = template["title"].format(title=display_name)
+                        body = template["body"]
+                        await send_expo_push_notifications(tokens, title, body, data={"type": "new_job", "job_title": job_title})
+                else:
+                    # If there are many jobs, send a grouped notification mentioning one or two to avoid spam
+                    sample_job = all_new_jobs[0]
+                    display_name = sample_job.organization or sample_job.title or "নতুন"
+                    
+                    titles = [
+                        f"🇧🇩 স্বপ্ন পূরণের আরও এক ধাপ! {total_new}টি নতুন সরকারি চাকরির সার্কুলার।",
+                        f"🇧🇩 বেকারত্বকে বিদায় জানানোর সময়! আজকে এসেছে {total_new}টি নতুন সার্কুলার।",
+                        f"🇧🇩 সরকারি চাকরির সুবর্ণ সুযোগ! {total_new}টি নতুন বিজ্ঞপ্তি আপনার অপেক্ষায়।"
+                    ]
+                    bodies = [
+                        f"'{display_name}' সহ দুর্দান্ত কিছু সার্কুলার যোগ হয়েছে। আপনার স্বপ্নের চাকরিটি হয়তো এই তালিকার ভেতরেই লুকিয়ে আছে! আজই চেক করুন।",
+                        f"প্রতিটি সার্কুলার হতে পারে আপনার জীবনের টার্নিং পয়েন্ট! আজই আপনার যোগ্যতার সাথে মিলিয়ে আবেদন করে ফেলুন।"
+                    ]
+                    
+                    title = random.choice(titles)
+                    body = random.choice(bodies)
+                    await send_expo_push_notifications(tokens, title, body, data={"type": "new_jobs", "count": total_new})
             else:
                 logger.info("No device tokens found to send notifications.")
 
