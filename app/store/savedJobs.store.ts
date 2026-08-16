@@ -24,23 +24,29 @@ export const useSavedJobsStore = create<SavedJobsState>()(
         }));
 
         // Fire and forget backend sync
-        registerForPushNotificationsAsync().then((token) => {
+        registerForPushNotificationsAsync().then(async (token) => {
           if (token) {
             if (!isCurrentlySaved) {
-              subscribeToJobUpdates(id, token);
+              console.log(`Subscribing to job ${id}...`);
+              const success = await subscribeToJobUpdates(id, token, 'saved');
+              console.log(`Subscription for job ${id} ${success ? 'succeeded' : 'failed'}`);
             } else {
-              unsubscribeFromJobUpdates(id, token);
+              console.log(`Unsubscribing from job ${id}...`);
+              const success = await unsubscribeFromJobUpdates(id, token, 'saved');
+              console.log(`Unsubscription for job ${id} ${success ? 'succeeded' : 'failed'}`);
             }
           }
-        }).catch(console.error);
+        }).catch(err => console.error('Error in toggleSaved backend sync:', err));
       },
       isSaved: (id) => get().savedJobIds.includes(id),
       syncToBackend: async () => {
         try {
+          console.log('Syncing saved jobs to backend...');
           const token = await registerForPushNotificationsAsync();
           if (!token) return;
           const { savedJobIds } = get();
-          await Promise.all(savedJobIds.map(id => subscribeToJobUpdates(id, token)));
+          await Promise.all(savedJobIds.map(id => subscribeToJobUpdates(id, token, 'saved')));
+          console.log(`Successfully synced ${savedJobIds.length} saved jobs.`);
         } catch (error) {
           console.error('Failed to sync saved jobs:', error);
         }

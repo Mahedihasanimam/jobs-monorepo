@@ -56,21 +56,24 @@ export async function registerForPushNotificationsAsync() {
 
   // Save token to Supabase
   if (token) {
-    await supabase.from('device_tokens').upsert({ 
+    const { error } = await supabase.from('device_tokens').upsert({ 
       token: token, 
       platform: Platform.OS 
     }, { onConflict: 'token' });
+    if (error) console.error('Error saving push token to Supabase:', error);
   }
 
   return token;
 }
 
-export async function subscribeToJobUpdates(jobId: number, token: string) {
+export async function subscribeToJobUpdates(jobId: number, token: string, type: 'saved' | 'applied' = 'saved') {
   try {
-    await supabase.from('job_subscriptions').upsert({
-      job_id: jobId,
-      token: token,
-    }, { onConflict: 'job_id,token' });
+    const payload: any = { job_id: jobId, token: token };
+    if (type === 'saved') payload.is_saved = true;
+    if (type === 'applied') payload.is_applied = true;
+
+    const { error } = await supabase.from('job_subscriptions').upsert(payload, { onConflict: 'job_id,token' });
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error subscribing to job:', error);
@@ -78,9 +81,14 @@ export async function subscribeToJobUpdates(jobId: number, token: string) {
   }
 }
 
-export async function unsubscribeFromJobUpdates(jobId: number, token: string) {
+export async function unsubscribeFromJobUpdates(jobId: number, token: string, type: 'saved' | 'applied' = 'saved') {
   try {
-    await supabase.from('job_subscriptions').delete().match({ job_id: jobId, token: token });
+    const payload: any = { job_id: jobId, token: token };
+    if (type === 'saved') payload.is_saved = false;
+    if (type === 'applied') payload.is_applied = false;
+
+    const { error } = await supabase.from('job_subscriptions').upsert(payload, { onConflict: 'job_id,token' });
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error('Error unsubscribing from job:', error);

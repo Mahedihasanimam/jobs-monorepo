@@ -174,17 +174,34 @@ class SupabaseJobService:
             logger.error(f"Failed to fetch jobs for deadline {target_date}: {error}")
             return []
 
-    def get_job_subscribers(self, job_id: int) -> List[str]:
-        """Fetches device tokens for users subscribed to a specific job who want deadline alerts."""
+    def get_job_subscribers(self, job_id: int, subscription_type: str = "saved") -> List[str]:
+        """Fetches device tokens for users subscribed to a specific job."""
         if not self.is_configured():
             return []
         try:
             # Fetch subscribers
-            sub_response = self.client.table("job_subscriptions").select("token").eq("job_id", job_id).execute()
+            sub_response = self.client.table("job_subscriptions").select("token, is_saved, is_applied").eq("job_id", job_id).execute()
             if not sub_response.data:
                 return []
             
-            tokens = [row["token"] for row in sub_response.data]
+            tokens = []
+            for row in sub_response.data:
+                is_saved = row.get("is_saved")
+                is_applied = row.get("is_applied")
+                
+                if subscription_type == "saved":
+                    # Skip if they already applied
+                    if is_applied is True:
+                        continue
+                    # Include if they explicitly saved, or if it's a legacy row (both false/null)
+                    if is_saved is True or (is_saved is not True and is_applied is not True):
+                        tokens.append(row["token"])
+                elif subscription_type == "applied":
+                    if is_applied is True:
+                        tokens.append(row["token"])
+            
+            if not tokens:
+                return []
             
             # Fetch preferences for these tokens
             pref_response = self.client.table("device_tokens").select("token, wants_deadlines").in_("token", tokens).execute()

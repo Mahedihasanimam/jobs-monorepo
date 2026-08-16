@@ -50,7 +50,7 @@ export default function JobDetailsScreen() {
     setShowNotifyModal(false);
     const token = await registerForPushNotificationsAsync();
     if (token) {
-      await subscribeToJobUpdates(jobId, token);
+      await subscribeToJobUpdates(jobId, token, 'applied');
     } else {
       Alert.alert('ত্রুটি', 'নোটিফিকেশন অনুমতি পাওয়া যায়নি। সেটিংসে গিয়ে অনুমতি দিন।');
     }
