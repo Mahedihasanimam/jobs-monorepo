@@ -31,7 +31,7 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
     scraper_class = SCRAPER_REGISTRY.get(scraper_id)
     if not scraper_class:
         logger.error(f"Scraper '{scraper_id}' not found.")
-        return 0, 0, 0
+        return 0, [], 0
         
     scraper = scraper_class()
     logger.info(f"Starting {scraper.name} scraper...")
@@ -45,7 +45,7 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
             if hasattr(scraper, "scrape_exam_notices"):
                 exam_notices = await scraper.scrape_exam_notices()
                 supabase_service.upsert_exam_notices(exam_notices, dry_run=dry_run)
-            return 0, 0, 0
+            return 0, [], 0
             
         # Deduplicate by (source, source_url)
         unique_jobs = {}
@@ -114,7 +114,7 @@ async def run_scraper(scraper_id: str, dry_run: bool, supabase_service: Supabase
         
     except Exception as e:
         logger.exception(f"[{scraper.name}] Scraper failed: {e}")
-        return 0, 0, 0
+        return 0, [], 0
 
 async def main():
     parser = argparse.ArgumentParser(description="Bangladesh Government Job Scraper")
