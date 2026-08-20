@@ -151,10 +151,16 @@ async def main():
         supabase.mark_expired_jobs(dry_run=False)
         supabase.mark_expired_exam_notices(dry_run=False)
         
-        # Send push notifications for new jobs
-        total_new = len(all_new_jobs)
+        # Send push notifications for new jobs published today
+        from datetime import datetime, timezone, timedelta
+        
+        bd_tz = timezone(timedelta(hours=6))
+        today = datetime.now(bd_tz).date()
+        notifiable_jobs = [job for job in all_new_jobs if job.published_date == today]
+        
+        total_new = len(notifiable_jobs)
         if total_new > 0:
-            logger.info(f"Triggering push notifications for {total_new} new jobs...")
+            logger.info(f"Triggering push notifications for {total_new} new jobs published today...")
             import random
             from services.notification_service import send_expo_push_notifications
             
@@ -181,7 +187,7 @@ async def main():
                         }
                     ]
                     
-                    for job in all_new_jobs:
+                    for job in notifiable_jobs:
                         template = random.choice(templates)
                         org_name = job.organization or "নতুন প্রতিষ্ঠান"
                         job_title = job.title or "নতুন পদ"
@@ -193,7 +199,7 @@ async def main():
                         await send_expo_push_notifications(tokens, title, body, data={"type": "new_job", "job_title": job_title})
                 else:
                     # If there are many jobs, send a grouped notification mentioning one or two to avoid spam
-                    sample_job = all_new_jobs[0]
+                    sample_job = notifiable_jobs[0]
                     display_name = sample_job.organization or sample_job.title or "নতুন"
                     
                     titles = [
